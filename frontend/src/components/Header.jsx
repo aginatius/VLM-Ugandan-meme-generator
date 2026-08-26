@@ -16,7 +16,7 @@ export default function Header({ page, navOpen, onNavigate, onToggle }) {
           aria-label="Uganda AI Meme Studio"
         >
           <img
-            src="/logo.png"
+            src="/logo.webp"
             alt=""
             className="brand-logo"
           />
