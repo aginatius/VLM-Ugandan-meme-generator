@@ -9,9 +9,21 @@ export default function Header({ page, navOpen, onNavigate, onToggle }) {
   return (
     <header className="site-header">
       <div className="site-header-inner">
-        <button className="brand" onClick={() => onNavigate("home")}>
-          <span className="brand-mark" />
-          Uganda AI Meme Studio
+
+        <button
+          className="brand"
+          onClick={() => onNavigate("home")}
+          aria-label="Uganda AI Meme Studio"
+        >
+          <img
+            src="/logo.png"
+            alt=""
+            className="brand-logo"
+          />
+
+          <span className="brand-name">
+            Uganda AI Meme Studio
+          </span>
         </button>
 
         <nav className={`site-nav ${navOpen ? "open" : ""}`}>
@@ -34,6 +46,7 @@ export default function Header({ page, navOpen, onNavigate, onToggle }) {
         >
           ☰
         </button>
+
       </div>
     </header>
   );

@@ -71,7 +71,7 @@ export default function Candidates({
           ← Back
         </button>
         <button className="btn btn-primary" onClick={onContinue}>
-          {isImage ? "Continue with selected →" : "Compose meme →"}
+          {isImage ? "Generate Caption →" : "Compose meme →"}
         </button>
         <button className="btn btn-quiet" onClick={onRegenerate}>
           Regenerate {isImage ? "candidates" : "captions"}
