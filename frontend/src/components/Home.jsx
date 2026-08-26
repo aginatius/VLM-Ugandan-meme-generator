@@ -38,11 +38,11 @@ export default function Home({ onGenerate, onSamples, onPrompt }) {
           <div className="home-how">
             <div className="home-how-item">
               <b>1. Describe the idea</b>
-              <span>Tell the studio what you want the meme to say.</span>
+              <span>Tell the studio what your meme should be about.</span>
             </div>
             <div className="home-how-item">
               <b>2. Pick a template</b>
-              <span>Choose the visual that fits your idea best.</span>
+              <span>Choose the template that fits your idea best.</span>
             </div>
             <div className="home-how-item">
               <b>3. Pick a caption</b>
@@ -50,7 +50,7 @@ export default function Home({ onGenerate, onSamples, onPrompt }) {
             </div>
             <div className="home-how-item">
               <b>4. Get the meme</b>
-              <span>Your selected template and caption become the final meme.</span>
+              <span>Download your finished meme.</span>
             </div>
           </div>
         </div>
