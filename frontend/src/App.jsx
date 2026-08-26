@@ -1,122 +1,304 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import Pipeline from "./components/Pipeline";
+import Home from "./components/Home";
+import HowItWorks from "./components/HowItWorks";
+import Samples from "./components/Samples";
+import Loading from "./components/Loading";
+import IntentionStep from "./components/IntentionStep";
+import Candidates from "./components/Candidates";
+import FinalMeme from "./components/FinalMeme";
+import {
+  makeImageCandidates,
+  makeCaptionCandidates,
+  renderPlaceholderMeme,
+  saveSample,
+} from "./utils/meme";
 
-function App() {
-  const [count, setCount] = useState(0)
+const initialState = {
+  page: "home",
+  navOpen: false,
+  topic: "",
+  lang: "en",
+  intent: "Humour",
+  style: "Relatable",
+  step: 0,
+  loading: false,
+  loadingMsg: "",
+  imageCandidates: [],
+  selectedImageIdx: 0,
+  captionCandidates: [],
+  selectedCaptionIdx: 0,
+  finalDataUrl: null,
+  finalScore: null,
+};
+
+export default function App() {
+  const [state, setState] = useState(initialState);
+
+  const update = (patch) => setState((current) => ({ ...current, ...patch }));
+
+  const showPage = (page) => {
+    if (page === "generate") {
+      update({
+        page,
+        navOpen: false,
+        step: 0,
+        loading: false,
+        imageCandidates: [],
+        selectedImageIdx: 0,
+        captionCandidates: [],
+        selectedCaptionIdx: 0,
+        finalDataUrl: null,
+        finalScore: null,
+      });
+    } else {
+      update({ page, navOpen: false });
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const runLoading = (message, delay, after) => {
+    update({ loading: true, loadingMsg: message });
+
+    window.setTimeout(() => {
+      update({ loading: false });
+      after();
+    }, delay);
+  };
+
+  const proceedToImage = (skip = false) => {
+    runLoading("Interpreting communicative intention…", 700, () => {
+      const imageCandidates = makeImageCandidates(state.topic);
+
+      update({
+        imageCandidates,
+        selectedImageIdx: 0,
+      });
+
+      if (!skip) {
+        update({ step: 1 });
+        return;
+      }
+
+      runLoading("Retrieving and refining visual candidates…", 700, () => {
+        runLoading(
+          "Generating captions for the selected image…",
+          700,
+          () => {
+            const captionCandidates = makeCaptionCandidates(
+              state.topic,
+              state.lang
+            );
+
+            update({
+              captionCandidates,
+              selectedCaptionIdx: 0,
+            });
+
+            runLoading("Composing final meme…", 700, () => {
+              const finalDataUrl = renderPlaceholderMeme(0, 0);
+              const finalScore = Math.round(
+                (imageCandidates[0].score + captionCandidates[0].score) / 2
+              );
+
+              update({
+                finalDataUrl,
+                finalScore,
+                step: 3,
+              });
+            });
+          }
+        );
+      });
+    });
+  };
+
+  const regenerateImages = () => {
+    runLoading("Re-running visual retrieval…", 600, () => {
+      update({
+        imageCandidates: makeImageCandidates(state.topic),
+        selectedImageIdx: 0,
+      });
+    });
+  };
+
+  const continueToCaptions = () => {
+    runLoading("Generating captions for the selected image…", 700, () => {
+      update({
+        captionCandidates: makeCaptionCandidates(state.topic, state.lang),
+        selectedCaptionIdx: 0,
+        step: 2,
+      });
+    });
+  };
+
+  const regenerateCaptions = () => {
+    runLoading("Re-running caption generation…", 600, () => {
+      update({
+        captionCandidates: makeCaptionCandidates(state.topic, state.lang),
+        selectedCaptionIdx: 0,
+      });
+    });
+  };
+
+  const composeMeme = () => {
+    runLoading("Composing meme…", 700, () => {
+      const image = state.imageCandidates[state.selectedImageIdx];
+      const caption = state.captionCandidates[state.selectedCaptionIdx];
+
+      const finalDataUrl = renderPlaceholderMeme(
+        state.selectedImageIdx,
+        state.selectedCaptionIdx
+      );
+
+      const finalScore = Math.round((image.score + caption.score) / 2);
+
+      const sample = {
+        id: Date.now(),
+        topic: state.topic,
+        lang: state.lang,
+        intent: state.intent,
+        style: state.style,
+        dataUrl: finalDataUrl,
+        score: finalScore,
+      };
+
+      saveSample(sample);
+
+      update({
+        finalDataUrl,
+        finalScore,
+        step: 3,
+      });
+    });
+  };
+
+  const startOver = () => {
+    update({
+      topic: "",
+      step: 0,
+      loading: false,
+      imageCandidates: [],
+      selectedImageIdx: 0,
+      captionCandidates: [],
+      selectedCaptionIdx: 0,
+      finalDataUrl: null,
+      finalScore: null,
+    });
+  };
+
+  const renderGenerateStep = () => {
+    if (state.loading) {
+      return <Loading message={state.loadingMsg} />;
+    }
+
+    if (state.step === 0) {
+      return (
+        <IntentionStep
+          topic={state.topic}
+          lang={state.lang}
+          intent={state.intent}
+          style={state.style}
+          onTopic={(topic) => update({ topic })}
+          onLang={(lang) => update({ lang })}
+          onIntent={(intent) => update({ intent })}
+          onStyle={(style) => update({ style })}
+          onGenerate={() => proceedToImage(false)}
+          onSkip={() => proceedToImage(true)}
+        />
+      );
+    }
+
+    if (state.step === 1) {
+      return (
+        <Candidates
+          type="image"
+          candidates={state.imageCandidates}
+          selectedIdx={state.selectedImageIdx}
+          onSelect={(selectedImageIdx) => update({ selectedImageIdx })}
+          onBack={() => update({ step: 0 })}
+          onContinue={continueToCaptions}
+          onRegenerate={regenerateImages}
+        />
+      );
+    }
+
+    if (state.step === 2) {
+      return (
+        <Candidates
+          type="caption"
+          candidates={state.captionCandidates}
+          selectedIdx={state.selectedCaptionIdx}
+          onSelect={(selectedCaptionIdx) => update({ selectedCaptionIdx })}
+          onBack={() => update({ step: 1 })}
+          onContinue={composeMeme}
+          onRegenerate={regenerateCaptions}
+        />
+      );
+    }
+
+    const image = state.imageCandidates[state.selectedImageIdx];
+    const caption = state.captionCandidates[state.selectedCaptionIdx];
+
+    return (
+      <FinalMeme
+        image={image}
+        caption={caption}
+        finalDataUrl={state.finalDataUrl}
+        onBack={() => update({ step: 2 })}
+        onStartOver={startOver}
+      />
+    );
+  };
+
+  useEffect(() => {
+    document.title = "Uganda AI Meme Studio";
+  }, []);
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      <Header
+        page={state.page}
+        navOpen={state.navOpen}
+        onNavigate={showPage}
+        onToggle={() => update({ navOpen: !state.navOpen })}
+      />
 
-      <div className="ticks"></div>
+      <div className={`shell ${state.page === "generate" ? "with-sidebar" : ""}`}>
+        {state.page === "generate" && (
+          <aside className="sidebar">
+            <Pipeline
+              step={state.step}
+              loading={state.loading}
+              onStep={(step) => update({ step })}
+            />
+          </aside>
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <main className="main">
+          <div className={`screen ${state.page === "generate" && state.step === 0 ? "narrow" : ""}`}>
+            {state.page === "home" && (
+              <Home
+                onGenerate={() => showPage("generate")}
+                onSamples={() => showPage("samples")}
+                onPrompt={(topic) => {
+                  update({ topic });
+                  showPage("generate");
+                }}
+              />
+            )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+            {state.page === "how" && <HowItWorks />}
+            {state.page === "samples" && <Samples />}
+            {state.page === "generate" && renderGenerateStep()}
+          </div>
+        </main>
+      </div>
+
+      <Footer />
     </>
-  )
+  );
 }
-
-export default App
