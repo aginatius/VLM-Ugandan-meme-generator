@@ -207,6 +207,85 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0}
 .brand-logo {
   transition: transform 0.2s ease;
 }
+.home-samples-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.home-sample-card {
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg-deep);
+}
+
+.home-sample-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.home-samples-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.home-sample-card {
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg-deep);
+}
+
+.home-sample-card img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+}
+
+.template-image-wrap {
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--line);
+}
+
+.template-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+.caption-content {
+  padding: 28px 24px;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.caption-setup {
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.caption-punchline {
+  font-size: 21px;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.cand-one-liner {
+  font-size: 20px;
+  line-height: 1.4;
+  font-weight: 700;
+}
 @media (max-width:900px){
   .samples-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }

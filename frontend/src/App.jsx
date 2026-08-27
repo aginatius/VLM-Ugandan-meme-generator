@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Pipeline from "./components/Pipeline";
@@ -9,27 +10,53 @@ import Loading from "./components/Loading";
 import IntentionStep from "./components/IntentionStep";
 import Candidates from "./components/Candidates";
 import FinalMeme from "./components/FinalMeme";
+
 import {
   makeImageCandidates,
   makeCaptionCandidates,
   renderPlaceholderMeme,
-  saveSample,
 } from "./utils/meme";
+
+const TEMPLATES = [
+  {
+    id: 1,
+    label: "Template 1",
+    image: "/templates/template-1.jpg",
+    score: 94,
+  },
+  {
+    id: 2,
+    label: "Template 2",
+    image: "/templates/template-2.jpg",
+    score: 86,
+  },
+  {
+    id: 3,
+    label: "Template 3",
+    image: "/templates/template-3.jpg",
+    score: 79,
+  },
+];
 
 const initialState = {
   page: "home",
   navOpen: false,
+
   topic: "",
   lang: "en",
   intent: "Humour",
   style: "Relatable",
+
   step: 0,
   loading: false,
   loadingMsg: "",
+
   imageCandidates: [],
   selectedImageIdx: 0,
+
   captionCandidates: [],
   selectedCaptionIdx: 0,
+
   finalDataUrl: null,
   finalScore: null,
 };
@@ -37,12 +64,17 @@ const initialState = {
 export default function App() {
   const [state, setState] = useState(initialState);
 
-  const update = (patch) => setState((current) => ({ ...current, ...patch }));
+  const update = (patch) => {
+    setState((current) => ({
+      ...current,
+      ...patch,
+    }));
+  };
 
   const showPage = (page) => {
     if (page === "generate") {
       update({
-        page,
+        page: "generate",
         navOpen: false,
         step: 0,
         loading: false,
@@ -54,126 +86,181 @@ export default function App() {
         finalScore: null,
       });
     } else {
-      update({ page, navOpen: false });
+      update({
+        page,
+        navOpen: false,
+      });
     }
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   const runLoading = (message, delay, after) => {
-    update({ loading: true, loadingMsg: message });
+    update({
+      loading: true,
+      loadingMsg: message,
+    });
 
     window.setTimeout(() => {
-      update({ loading: false });
+      update({
+        loading: false,
+      });
+
       after();
     }, delay);
   };
 
+  const getImageCandidates = () => {
+    const generated = makeImageCandidates(state.topic);
+
+    return generated.map((candidate, index) => ({
+      ...candidate,
+      ...TEMPLATES[index],
+    }));
+  };
+
   const proceedToImage = (skip = false) => {
-    runLoading("Interpreting communicative intention…", 700, () => {
-      const imageCandidates = makeImageCandidates(state.topic);
+    runLoading(
+      "Interpreting communicative intention…",
+      700,
+      () => {
+        const imageCandidates = getImageCandidates();
 
-      update({
-        imageCandidates,
-        selectedImageIdx: 0,
-      });
+        update({
+          imageCandidates,
+          selectedImageIdx: 0,
+        });
 
-      if (!skip) {
-        update({ step: 1 });
-        return;
-      }
+        if (!skip) {
+          update({
+            step: 1,
+          });
 
-      runLoading("Retrieving and refining visual candidates…", 700, () => {
+          return;
+        }
+
         runLoading(
-          "Generating captions for the selected image…",
+          "Retrieving and refining visual candidates…",
           700,
           () => {
-            const captionCandidates = makeCaptionCandidates(
-              state.topic,
-              state.lang
+            runLoading(
+              "Generating captions for the selected image…",
+              700,
+              () => {
+                const captionCandidates = makeCaptionCandidates(
+                  state.topic,
+                  state.lang
+                );
+
+                update({
+                  captionCandidates,
+                  selectedCaptionIdx: 0,
+                });
+
+                runLoading(
+                  "Composing final meme…",
+                  700,
+                  () => {
+                    const finalDataUrl = renderPlaceholderMeme(0, 0);
+
+                    const finalScore = Math.round(
+                      (
+                        imageCandidates[0].score +
+                        captionCandidates[0].score
+                      ) / 2
+                    );
+
+                    update({
+                      finalDataUrl,
+                      finalScore,
+                      step: 3,
+                    });
+                  }
+                );
+              }
             );
-
-            update({
-              captionCandidates,
-              selectedCaptionIdx: 0,
-            });
-
-            runLoading("Composing final meme…", 700, () => {
-              const finalDataUrl = renderPlaceholderMeme(0, 0);
-              const finalScore = Math.round(
-                (imageCandidates[0].score + captionCandidates[0].score) / 2
-              );
-
-              update({
-                finalDataUrl,
-                finalScore,
-                step: 3,
-              });
-            });
           }
         );
-      });
-    });
+      }
+    );
   };
 
   const regenerateImages = () => {
-    runLoading("Re-running visual retrieval…", 600, () => {
-      update({
-        imageCandidates: makeImageCandidates(state.topic),
-        selectedImageIdx: 0,
-      });
-    });
+    runLoading(
+      "Re-running visual retrieval…",
+      600,
+      () => {
+        update({
+          imageCandidates: getImageCandidates(),
+          selectedImageIdx: 0,
+        });
+      }
+    );
   };
 
   const continueToCaptions = () => {
-    runLoading("Generating captions for the selected image…", 700, () => {
-      update({
-        captionCandidates: makeCaptionCandidates(state.topic, state.lang),
-        selectedCaptionIdx: 0,
-        step: 2,
-      });
-    });
+    runLoading(
+      "Generating captions for the selected image…",
+      700,
+      () => {
+        update({
+          captionCandidates: makeCaptionCandidates(
+            state.topic,
+            state.lang
+          ),
+          selectedCaptionIdx: 0,
+          step: 2,
+        });
+      }
+    );
   };
 
   const regenerateCaptions = () => {
-    runLoading("Re-running caption generation…", 600, () => {
-      update({
-        captionCandidates: makeCaptionCandidates(state.topic, state.lang),
-        selectedCaptionIdx: 0,
-      });
-    });
+    runLoading(
+      "Re-running caption generation…",
+      600,
+      () => {
+        update({
+          captionCandidates: makeCaptionCandidates(
+            state.topic,
+            state.lang
+          ),
+          selectedCaptionIdx: 0,
+        });
+      }
+    );
   };
 
   const composeMeme = () => {
-    runLoading("Composing meme…", 700, () => {
-      const image = state.imageCandidates[state.selectedImageIdx];
-      const caption = state.captionCandidates[state.selectedCaptionIdx];
+    runLoading(
+      "Composing meme…",
+      700,
+      () => {
+        const image =
+          state.imageCandidates[state.selectedImageIdx];
 
-      const finalDataUrl = renderPlaceholderMeme(
-        state.selectedImageIdx,
-        state.selectedCaptionIdx
-      );
+        const caption =
+          state.captionCandidates[state.selectedCaptionIdx];
 
-      const finalScore = Math.round((image.score + caption.score) / 2);
+        const finalDataUrl = renderPlaceholderMeme(
+          state.selectedImageIdx,
+          state.selectedCaptionIdx
+        );
 
-      const sample = {
-        id: Date.now(),
-        topic: state.topic,
-        lang: state.lang,
-        intent: state.intent,
-        style: state.style,
-        dataUrl: finalDataUrl,
-        score: finalScore,
-      };
+        const finalScore = Math.round(
+          (image.score + caption.score) / 2
+        );
 
-      saveSample(sample);
-
-      update({
-        finalDataUrl,
-        finalScore,
-        step: 3,
-      });
-    });
+        update({
+          finalDataUrl,
+          finalScore,
+          step: 3,
+        });
+      }
+    );
   };
 
   const startOver = () => {
@@ -218,7 +305,9 @@ export default function App() {
           type="image"
           candidates={state.imageCandidates}
           selectedIdx={state.selectedImageIdx}
-          onSelect={(selectedImageIdx) => update({ selectedImageIdx })}
+          onSelect={(selectedImageIdx) =>
+            update({ selectedImageIdx })
+          }
           onBack={() => update({ step: 0 })}
           onContinue={continueToCaptions}
           onRegenerate={regenerateImages}
@@ -232,7 +321,9 @@ export default function App() {
           type="caption"
           candidates={state.captionCandidates}
           selectedIdx={state.selectedCaptionIdx}
-          onSelect={(selectedCaptionIdx) => update({ selectedCaptionIdx })}
+          onSelect={(selectedCaptionIdx) =>
+            update({ selectedCaptionIdx })
+          }
           onBack={() => update({ step: 1 })}
           onContinue={composeMeme}
           onRegenerate={regenerateCaptions}
@@ -240,8 +331,11 @@ export default function App() {
       );
     }
 
-    const image = state.imageCandidates[state.selectedImageIdx];
-    const caption = state.captionCandidates[state.selectedCaptionIdx];
+    const image =
+      state.imageCandidates[state.selectedImageIdx];
+
+    const caption =
+      state.captionCandidates[state.selectedCaptionIdx];
 
     return (
       <FinalMeme
@@ -264,10 +358,20 @@ export default function App() {
         page={state.page}
         navOpen={state.navOpen}
         onNavigate={showPage}
-        onToggle={() => update({ navOpen: !state.navOpen })}
+        onToggle={() =>
+          update({
+            navOpen: !state.navOpen,
+          })
+        }
       />
 
-      <div className={`shell ${state.page === "generate" ? "with-sidebar" : ""}`}>
+      <div
+        className={`shell ${
+          state.page === "generate"
+            ? "with-sidebar"
+            : ""
+        }`}
+      >
         {state.page === "generate" && (
           <aside className="sidebar">
             <Pipeline
@@ -279,11 +383,17 @@ export default function App() {
         )}
 
         <main className="main">
-          <div className={`screen ${state.page === "generate" && state.step === 0 ? "narrow" : ""}`}>
+          <div
+            className={`screen ${
+              state.page === "generate" &&
+              state.step === 0
+                ? "narrow"
+                : ""
+            }`}
+          >
             {state.page === "home" && (
               <Home
-                onGenerate={() => showPage("generate")}
-                onSamples={() => showPage("samples")}
+                onNavigate={showPage}
                 onPrompt={(topic) => {
                   update({ topic });
                   showPage("generate");
@@ -292,8 +402,11 @@ export default function App() {
             )}
 
             {state.page === "how" && <HowItWorks />}
+
             {state.page === "samples" && <Samples />}
-            {state.page === "generate" && renderGenerateStep()}
+
+            {state.page === "generate" &&
+              renderGenerateStep()}
           </div>
         </main>
       </div>
