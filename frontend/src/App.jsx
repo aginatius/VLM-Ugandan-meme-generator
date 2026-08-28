@@ -367,18 +367,10 @@ export default function App() {
         navOpen={state.navOpen}
         theme={theme}
         onNavigate={showPage}
-<<<<<<< HEAD
-        onToggle={() =>
-          update({
-            navOpen: !state.navOpen,
-          })
-        }
-=======
         onThemeToggle={() =>
           setTheme((current) => (current === "dark" ? "light" : "dark"))
         }
         onToggle={() => update({ navOpen: !state.navOpen })}
->>>>>>> dd30a87 (adding dark and light mode)
       />
 
       <div
