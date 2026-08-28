@@ -159,8 +159,8 @@ export default function App() {
               700,
               () => {
                 const captionCandidates = makeCaptionCandidates(
-                  state.topic,
-                  state.lang
+                  // state.topic,
+                  // state.lang
                 );
 
                 update({
@@ -216,8 +216,8 @@ export default function App() {
       () => {
         update({
           captionCandidates: makeCaptionCandidates(
-            state.topic,
-            state.lang
+            // state.topic,
+            // state.lang
           ),
           selectedCaptionIdx: 0,
           step: 2,
@@ -233,8 +233,8 @@ export default function App() {
       () => {
         update({
           captionCandidates: makeCaptionCandidates(
-            state.topic,
-            state.lang
+            // state.topic,
+            // state.lang
           ),
           selectedCaptionIdx: 0,
         });

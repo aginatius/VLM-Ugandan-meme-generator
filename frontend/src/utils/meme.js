@@ -64,7 +64,7 @@ export function makeImageCandidates(topic) {
   }));
 }
 
-export function makeCaptionCandidates(topic, lang) {
+export function makeCaptionCandidates() {
   return [
     {
       label: "Boda boda guys at the end of the day",
