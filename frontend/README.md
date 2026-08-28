@@ -17,6 +17,7 @@ If you are developing a production application, we recommend using TypeScript wi
 
 
 ## i am proposing we use clean scalable architecture 
+'''text
 src/
 ├── app/
 │   ├── App.jsx
@@ -79,6 +80,7 @@ src/
 │   └── scoring.js
 │
 └── main.jsx
+'''
 
 src/app/App.jsx              # Composes the application and connects views to controllers.
 src/app/routes.jsx           # Defines available application pages and navigation.
