@@ -83,7 +83,7 @@ src/
 └── main.jsx
 ```
 
-
+```text
 src/app/App.jsx              # Composes the application and connects views to controllers.
 src/app/routes.jsx           # Defines available application pages and navigation.
 src/app/app.css              # Contains global styles, theme variables, and shared layout rules.
@@ -127,3 +127,4 @@ src/data/samples.js           # Stores sample-gallery metadata.
 src/utils/canvas.js           # Contains canvas rendering and image-export helpers.
 src/utils/scoring.js          # Contains candidate scoring and ranking helpers.
 src/main.jsx                  # Starts the React application.
+```
