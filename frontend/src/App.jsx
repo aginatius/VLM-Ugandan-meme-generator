@@ -63,6 +63,14 @@ const initialState = {
 
 export default function App() {
   const [state, setState] = useState(initialState);
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem("meme-studio-theme") || "dark"
+  );
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("meme-studio-theme", theme);
+  }, [theme]);
 
   const update = (patch) => {
     setState((current) => ({
@@ -357,12 +365,20 @@ export default function App() {
       <Header
         page={state.page}
         navOpen={state.navOpen}
+        theme={theme}
         onNavigate={showPage}
+<<<<<<< HEAD
         onToggle={() =>
           update({
             navOpen: !state.navOpen,
           })
         }
+=======
+        onThemeToggle={() =>
+          setTheme((current) => (current === "dark" ? "light" : "dark"))
+        }
+        onToggle={() => update({ navOpen: !state.navOpen })}
+>>>>>>> dd30a87 (adding dark and light mode)
       />
 
       <div
