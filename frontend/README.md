@@ -18,7 +18,7 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ## i am proposing we use clean scalable architecture 
 
-'''src/
+'''textsrc/
 ├── app/
 │   ├── App.jsx
 │   ├── routes.jsx
