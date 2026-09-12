@@ -2,10 +2,12 @@ import { INTENTS, STYLES } from "../utils/meme";
 
 export default function IntentionStep({
   topic,
+  imageFile,
   lang,
   intent,
   style,
   onTopic,
+  onImage,
   onLang,
   onIntent,
   onStyle,
@@ -17,6 +19,17 @@ export default function IntentionStep({
   return (
     <>
       <h2>What should the meme communicate?</h2>
+
+      <div className="field">
+        <label htmlFor="meme-image">Image</label>
+        <input
+          id="meme-image"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={(event) => onImage(event.target.files?.[0] || null)}
+        />
+        {imageFile && <small>{imageFile.name}</small>}
+      </div>
 
       <div className="field">
         <textarea
@@ -79,14 +92,14 @@ export default function IntentionStep({
       <div className="btn-row">
         <button
           className="btn btn-primary"
-          disabled={!hasTopic}
+          disabled={!hasTopic || !imageFile}
           onClick={onGenerate}
         >
           Generate →
         </button>
         <button
           className="btn btn-ghost"
-          disabled={!hasTopic}
+          disabled={!hasTopic || !imageFile}
           onClick={onSkip}
         >
           Skip to result

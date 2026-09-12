@@ -10,16 +10,15 @@ import IntentionStep from "./components/IntentionStep";
 import Candidates from "./components/Candidates";
 import FinalMeme from "./components/FinalMeme";
 import {
-  makeImageCandidates,
-  makeCaptionCandidates,
-  renderPlaceholderMeme,
   saveSample,
 } from "./utils/meme";
+import { composeMeme, generateMeme } from "./utils/api";
 
 const initialState = {
   page: "home",
   navOpen: false,
   topic: "",
+  imageFile: null,
   lang: "en",
   intent: "Humour",
   style: "Relatable",
@@ -32,6 +31,7 @@ const initialState = {
   selectedCaptionIdx: 0,
   finalDataUrl: null,
   finalScore: null,
+  error: "",
 };
 
 export default function App() {
@@ -60,6 +60,7 @@ export default function App() {
         selectedCaptionIdx: 0,
         finalDataUrl: null,
         finalScore: null,
+        error: "",
       });
     } else {
       update({ page, navOpen: false });
@@ -68,125 +69,59 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const runLoading = (message, delay, after) => {
-    update({ loading: true, loadingMsg: message });
-
-    window.setTimeout(() => {
-      update({ loading: false });
-      after();
-    }, delay);
+  const proceedToImage = async (skip = false) => {
+    update({ loading: true, loadingMsg: "Generating captions with the hosted model…", error: "" });
+    try {
+      const result = await generateMeme({ imageFile: state.imageFile, topic: state.topic, lang: state.lang, intent: state.intent, style: state.style });
+      const imageCandidates = [0, 1, 2].map((index) => ({ label: "Uploaded image", imageUrl: result.image_url, score: 96 - index * 4 }));
+      const captionCandidates = result.captions.map((candidate) => ({ label: candidate.caption, lang: candidate.language, structure: "one-liner", score: candidate.score }));
+      update({ loading: false, imageCandidates, captionCandidates, selectedImageIdx: 0, selectedCaptionIdx: 0, step: skip ? 2 : 1 });
+      if (skip) await composeMemeFor(captionCandidates[0].label);
+    } catch (error) {
+      update({ loading: false, error: error.message });
+    }
   };
 
-  const proceedToImage = (skip = false) => {
-    runLoading("Interpreting communicative intention…", 700, () => {
-      const imageCandidates = makeImageCandidates(state.topic);
-
-      update({
-        imageCandidates,
-        selectedImageIdx: 0,
-      });
-
-      if (!skip) {
-        update({ step: 1 });
-        return;
-      }
-
-      runLoading("Retrieving and refining visual candidates…", 700, () => {
-        runLoading(
-          "Generating captions for the selected image…",
-          700,
-          () => {
-            const captionCandidates = makeCaptionCandidates(
-              state.topic,
-              state.lang
-            );
-
-            update({
-              captionCandidates,
-              selectedCaptionIdx: 0,
-            });
-
-            runLoading("Composing final meme…", 700, () => {
-              const finalDataUrl = renderPlaceholderMeme(0, 0);
-              const finalScore = Math.round(
-                (imageCandidates[0].score + captionCandidates[0].score) / 2
-              );
-
-              update({
-                finalDataUrl,
-                finalScore,
-                step: 3,
-              });
-            });
-          }
-        );
-      });
-    });
+  const composeMemeFor = async (caption) => {
+    update({ loading: true, loadingMsg: "Composing final meme…", error: "" });
+    try {
+      const result = await composeMeme({ imageFile: state.imageFile, caption });
+      update({ loading: false, finalDataUrl: result.image_url, finalScore: result.score, step: 3 });
+    } catch (error) {
+      update({ loading: false, error: error.message });
+    }
   };
 
-  const regenerateImages = () => {
-    runLoading("Re-running visual retrieval…", 600, () => {
-      update({
-        imageCandidates: makeImageCandidates(state.topic),
-        selectedImageIdx: 0,
-      });
-    });
-  };
+  const regenerateImages = () => proceedToImage(false);
 
-  const continueToCaptions = () => {
-    runLoading("Generating captions for the selected image…", 700, () => {
-      update({
-        captionCandidates: makeCaptionCandidates(state.topic, state.lang),
-        selectedCaptionIdx: 0,
-        step: 2,
-      });
-    });
-  };
+  const continueToCaptions = () => update({ step: 2 });
 
-  const regenerateCaptions = () => {
-    runLoading("Re-running caption generation…", 600, () => {
-      update({
-        captionCandidates: makeCaptionCandidates(state.topic, state.lang),
-        selectedCaptionIdx: 0,
-      });
-    });
-  };
+  const regenerateCaptions = () => proceedToImage(false);
 
-  const composeMeme = () => {
-    runLoading("Composing meme…", 700, () => {
+  const composeSelectedMeme = () => {
       const image = state.imageCandidates[state.selectedImageIdx];
       const caption = state.captionCandidates[state.selectedCaptionIdx];
-
-      const finalDataUrl = renderPlaceholderMeme(
-        state.selectedImageIdx,
-        state.selectedCaptionIdx
-      );
-
-      const finalScore = Math.round((image.score + caption.score) / 2);
-
-      const sample = {
-        id: Date.now(),
-        topic: state.topic,
-        lang: state.lang,
-        intent: state.intent,
-        style: state.style,
-        dataUrl: finalDataUrl,
-        score: finalScore,
-      };
-
-      saveSample(sample);
-
-      update({
-        finalDataUrl,
-        finalScore,
-        step: 3,
-      });
-    });
+      update({ loading: true, loadingMsg: "Composing final meme…", error: "" });
+      composeMeme({ imageFile: state.imageFile, caption: caption.label })
+        .then((result) => {
+          saveSample({
+            id: Date.now(),
+            topic: state.topic,
+            lang: state.lang,
+            intent: state.intent,
+            style: state.style,
+            dataUrl: result.image_url,
+            score: Math.round((image.score + caption.score) / 2),
+          });
+          update({ loading: false, finalDataUrl: result.image_url, finalScore: result.score, step: 3 });
+        })
+        .catch((error) => update({ loading: false, error: error.message }));
   };
 
   const startOver = () => {
     update({
       topic: "",
+      imageFile: null,
       step: 0,
       loading: false,
       imageCandidates: [],
@@ -195,6 +130,7 @@ export default function App() {
       selectedCaptionIdx: 0,
       finalDataUrl: null,
       finalScore: null,
+      error: "",
     });
   };
 
@@ -207,10 +143,12 @@ export default function App() {
       return (
         <IntentionStep
           topic={state.topic}
+          imageFile={state.imageFile}
           lang={state.lang}
           intent={state.intent}
           style={state.style}
           onTopic={(topic) => update({ topic })}
+          onImage={(imageFile) => update({ imageFile })}
           onLang={(lang) => update({ lang })}
           onIntent={(intent) => update({ intent })}
           onStyle={(style) => update({ style })}
@@ -242,7 +180,7 @@ export default function App() {
           selectedIdx={state.selectedCaptionIdx}
           onSelect={(selectedCaptionIdx) => update({ selectedCaptionIdx })}
           onBack={() => update({ step: 1 })}
-          onContinue={composeMeme}
+          onContinue={composeSelectedMeme}
           onRegenerate={regenerateCaptions}
         />
       );
@@ -291,6 +229,7 @@ export default function App() {
         )}
 
         <main className="main">
+          {state.error && <div className="api-error" role="alert">{state.error}</div>}
           <div className={`screen ${state.page === "generate" && state.step === 0 ? "narrow" : ""}`}>
             {state.page === "home" && (
               <Home

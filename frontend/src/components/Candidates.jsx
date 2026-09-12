@@ -29,19 +29,10 @@ export default function Candidates({
             <span className="cand-score">{candidate.score}%</span>
 
             {isImage ? (
-              <div className="placeholder-box" />
+              <img className="placeholder-box" src={candidate.imageUrl} alt="Uploaded meme source" />
             ) : (
               <div className="cand-body caption-body">
-                {candidate.structure === "one-liner" ? (
-                  <div className="cand-caption-line one-line-placeholder">
-                    One-liner placeholder
-                  </div>
-                ) : (
-                  <>
-                    <div className="cand-caption-line">Setup placeholder</div>
-                    <div className="cand-caption-line">Punchline placeholder</div>
-                  </>
-                )}
+                <div className="cand-caption-line">{candidate.label}</div>
 
                 <button
                   className="cand-pick-btn"
