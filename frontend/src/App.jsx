@@ -19,6 +19,7 @@ const initialState = {
   navOpen: false,
   topic: "",
   imageFile: null,
+  model: "qwen25-vl",
   lang: "en",
   intent: "Humour",
   style: "Relatable",
@@ -72,7 +73,7 @@ export default function App() {
   const proceedToImage = async (skip = false) => {
     update({ loading: true, loadingMsg: "Generating captions with the hosted model…", error: "" });
     try {
-      const result = await generateMeme({ imageFile: state.imageFile, topic: state.topic, lang: state.lang, intent: state.intent, style: state.style });
+      const result = await generateMeme({ imageFile: state.imageFile, topic: state.topic, lang: state.lang, intent: state.intent, style: state.style, model: state.model });
       const imageCandidates = [0, 1, 2].map((index) => ({ label: "Uploaded image", imageUrl: result.image_url, score: 96 - index * 4 }));
       const captionCandidates = result.captions.map((candidate) => ({ label: candidate.caption, lang: candidate.language, structure: "one-liner", score: candidate.score }));
       update({ loading: false, imageCandidates, captionCandidates, selectedImageIdx: 0, selectedCaptionIdx: 0, step: skip ? 2 : 1 });
@@ -85,7 +86,7 @@ export default function App() {
   const composeMemeFor = async (caption) => {
     update({ loading: true, loadingMsg: "Composing final meme…", error: "" });
     try {
-      const result = await composeMeme({ imageFile: state.imageFile, caption });
+      const result = await composeMeme({ imageFile: state.imageFile, caption, model: state.model });
       update({ loading: false, finalDataUrl: result.image_url, finalScore: result.score, step: 3 });
     } catch (error) {
       update({ loading: false, error: error.message });
@@ -102,7 +103,7 @@ export default function App() {
       const image = state.imageCandidates[state.selectedImageIdx];
       const caption = state.captionCandidates[state.selectedCaptionIdx];
       update({ loading: true, loadingMsg: "Composing final meme…", error: "" });
-      composeMeme({ imageFile: state.imageFile, caption: caption.label })
+      composeMeme({ imageFile: state.imageFile, caption: caption.label, model: state.model })
         .then((result) => {
           saveSample({
             id: Date.now(),
@@ -154,6 +155,7 @@ export default function App() {
           onStyle={(style) => update({ style })}
           onGenerate={() => proceedToImage(false)}
           onSkip={() => proceedToImage(true)}
+          onModel={(model) => update({ model })}
         />
       );
     }

@@ -19,7 +19,7 @@ async function request(path, formData) {
   return response.json();
 }
 
-export function generateMeme({ imageFile, topic, lang, intent, style, model = "vlm" }) {
+export function generateMeme({ imageFile, topic, lang, intent, style, model = "qwen25-vl" }) {
   const formData = new FormData();
   formData.append("image", imageFile);
   formData.append("intention", `${intent}: ${topic}`);
@@ -29,7 +29,7 @@ export function generateMeme({ imageFile, topic, lang, intent, style, model = "v
   return request("/memes/generate", formData);
 }
 
-export function composeMeme({ imageFile, caption, model = "vlm" }) {
+export function composeMeme({ imageFile, caption, model = "qwen25-vl" }) {
   const formData = new FormData();
   formData.append("image", imageFile);
   formData.append("caption", caption);

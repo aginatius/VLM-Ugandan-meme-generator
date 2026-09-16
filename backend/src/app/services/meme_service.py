@@ -7,6 +7,14 @@ from app.services.image_renderer import MemeRenderer
 
 
 class MemeService:
+    MODEL_ALIASES = {
+        "paligemma2": "hf_paligemma2_model",
+        "qwen25-vl": "hf_qwen25_vl_model",
+        "internvl25": "hf_internvl25_model",
+        "llava-onevision": "hf_llava_onevision_model",
+        "minicpm-v": "hf_minicpm_v_model",
+    }
+
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.client = HuggingFaceVisionClient(settings)
@@ -54,11 +62,11 @@ class MemeService:
         )
 
     def _model_name(self, model: str) -> str:
-        if model == "vlm":
-            return self.settings.hf_vlm_model
-        if model == "lvm":
-            return self.settings.hf_lvm_model
-        raise ValueError("model must be 'vlm' or 'lvm'")
+        settings_name = self.MODEL_ALIASES.get(model)
+        if settings_name is None:
+            supported = ", ".join(self.MODEL_ALIASES)
+            raise ValueError(f"model must be one of: {supported}")
+        return getattr(self.settings, settings_name)
 
     @staticmethod
     def _data_url(content: bytes, content_type: str) -> str:

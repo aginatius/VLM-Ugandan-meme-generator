@@ -7,6 +7,7 @@ export default function IntentionStep({
   intent,
   style,
   onTopic,
+  model,
   onImage,
   onLang,
   onIntent,
@@ -37,6 +38,27 @@ export default function IntentionStep({
           onChange={(e) => onTopic(e.target.value)}
           placeholder="e.g. A funny meme about a boda rider ignoring traffic lights while the passenger panics"
         />
+      </div>
+
+      <div className="field">
+        <label>Model</label>
+        <div className="chip-row">
+          {[
+            ["paligemma2", "PaliGemma 2"],
+            ["qwen25-vl", "Qwen2.5-VL"],
+            ["internvl25", "InternVL2.5"],
+            ["llava-onevision", "LLaVA-OneVision"],
+            ["minicpm-v", "MiniCPM-V"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              className={`chip ${model === value ? "selected" : ""}`}
+              onClick={() => onModel(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="field">

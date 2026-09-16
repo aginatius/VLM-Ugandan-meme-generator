@@ -59,4 +59,4 @@ async def compose_meme(
 
 @router.get("/models")
 def available_models() -> dict[str, list[str]]:
-    return {"models": ["vlm", "lvm"]}
+    return {"models": list(MemeService.MODEL_ALIASES)}

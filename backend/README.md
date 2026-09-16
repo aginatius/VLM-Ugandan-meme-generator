@@ -13,9 +13,9 @@ The generate response contains `image_url` as a data URL and `captions` with cap
 
 ## Hugging Face setup
 
-1. In Kaggle, save the final adapter or merged model to a Hugging Face model repository. For the router to load it reliably, use a repository containing a complete deployable model; if the adapter is not supported by the selected provider, merge the adapter into the base model before uploading.
+1. In Kaggle, save each final adapter or merged model to a Hugging Face model repository. For the router to load it reliably, use a repository containing a complete deployable model; if an adapter is not supported by the selected provider, merge it into the base model before uploading.
 2. Create a Hugging Face access token with inference permission.
-3. Copy `.env.example` to `.env` and set `HF_API_TOKEN`, `HF_VLM_MODEL`, and `CORS_ORIGINS`. Never put the token in the frontend or commit `.env`.
+3. Copy `.env.example` to `.env` and set `HF_API_TOKEN`, the five `HF_*_MODEL` values, and `CORS_ORIGINS`. Never put the token in the frontend or commit `.env`.
 4. Deploy this `backend` directory to Hugging Face Spaces, Render, Railway, or another Docker host. The included Dockerfile listens on port 8000.
 
 ## Local development
