@@ -7,7 +7,6 @@ export default function IntentionStep({
   intent,
   style,
   onTopic,
-  model,
   onImage,
   onLang,
   onIntent,
@@ -19,10 +18,12 @@ export default function IntentionStep({
 
   return (
     <>
-      <h2>What should the meme communicate?</h2>
+      <div className="eyebrow">Mwizerwa / Qwen2.5-VL</div>
+      <h2>Turn a photo into a Ugandan meme</h2>
+      <p className="screen-sub">Upload a photo, describe the moment, and let the finetuned vision model write caption options in English, Luganda, or a natural mix.</p>
 
       <div className="field">
-        <label htmlFor="meme-image">Image</label>
+        <label htmlFor="meme-image">1. Choose a photo</label>
         <input
           id="meme-image"
           type="file"
@@ -36,29 +37,13 @@ export default function IntentionStep({
         <textarea
           value={topic}
           onChange={(e) => onTopic(e.target.value)}
-          placeholder="e.g. A funny meme about a boda rider ignoring traffic lights while the passenger panics"
+          placeholder="e.g. A boda rider ignores the traffic lights while the passenger panics"
         />
       </div>
 
       <div className="field">
-        <label>Model</label>
-        <div className="chip-row">
-          {[
-            ["paligemma2", "PaliGemma 2"],
-            ["qwen25-vl", "Qwen2.5-VL"],
-            ["internvl25", "InternVL2.5"],
-            ["llava-onevision", "LLaVA-OneVision"],
-            ["minicpm-v", "MiniCPM-V"],
-          ].map(([value, label]) => (
-            <button
-              key={value}
-              className={`chip ${model === value ? "selected" : ""}`}
-              onClick={() => onModel(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <label>Powered by</label>
+        <div className="model-badge">Mwizerwa/meme-qwen2.5-vl-finetuned</div>
       </div>
 
       <div className="field">
@@ -114,10 +99,10 @@ export default function IntentionStep({
       <div className="btn-row">
         <button
           className="btn btn-primary"
-          disabled={!hasTopic || !imageFile}
+          disabled={!hasTopic || (!imageFile && !hasTopic)}
           onClick={onGenerate}
         >
-          Generate →
+          {imageFile ? "Generate →" : "Generate meme image →"}
         </button>
         <button
           className="btn btn-ghost"

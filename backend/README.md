@@ -31,4 +31,14 @@ uvicorn app.main:app --reload --port 8000
 
 Then configure the frontend with `VITE_API_BASE_URL=http://localhost:8000/api` before running Vite. The default already points there.
 
-The Hugging Face OpenAI-compatible router is used at `/v1/chat/completions`, and the client also understands legacy inference responses containing `generated_text`.
+When `MODAL_CAPTION_URL` is set, image caption requests go to Modal. Otherwise, the backend uses the Hugging Face OpenAI-compatible router at `/v1/chat/completions`.
+
+## Modal caption model
+
+The fine-tuned Qwen vision-language adapter can run on Modal when it is not available through Hugging Face Inference Providers. Create a Modal secret named `huggingface-secret` with an `HF_TOKEN` value that can read both the adapter repository and its base model. The adapter's `adapter_config.json` must name a Qwen2.5-VL base model (`qwen2_5_vl`); Modal loads that base model and attaches `adapter_model.safetensors`. A text-only Qwen2 checkpoint cannot accept meme images. From the repository root, deploy it with:
+
+```powershell
+python -m modal deploy backend/src/app/models/modal_caption_api.py
+```
+
+Copy the Web Function URL printed by Modal into `backend/.env` as `MODAL_CAPTION_URL`. The FastAPI backend calls this endpoint for caption generation, so the browser never receives the Hugging Face token. The local `.env.example` is documentation only; never put a real token in it or commit one.

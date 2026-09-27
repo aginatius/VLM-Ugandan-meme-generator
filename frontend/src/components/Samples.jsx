@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { loadSamples, renderPlaceholderMeme } from "../utils/meme";
 
 const DEFAULT_SAMPLES = [
@@ -11,23 +11,19 @@ const DEFAULT_SAMPLES = [
 ];
 
 export default function Samples() {
-  const [samples, setSamples] = useState([]);
-
-  useEffect(() => {
+  const [samples] = useState(() => {
     const saved = loadSamples();
 
     if (saved.length) {
-      setSamples(saved);
-    } else {
-      setSamples(
-        DEFAULT_SAMPLES.map((sample, index) => ({
-          ...sample,
-          id: `default-${index}`,
-          dataUrl: renderPlaceholderMeme(sample.image, sample.caption),
-        }))
-      );
+      return saved;
     }
-  }, []);
+
+    return DEFAULT_SAMPLES.map((sample, index) => ({
+      ...sample,
+      id: `default-${index}`,
+      dataUrl: renderPlaceholderMeme(sample.image, sample.caption),
+    }));
+  });
 
   return (
     <div className="samples-grid">

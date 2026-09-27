@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile
 
 from app.config import get_settings
 from app.models.hf_client import HuggingFaceInferenceError
@@ -55,6 +55,17 @@ async def compose_meme(
         return meme_service.compose(image_bytes, caption.strip(), content_type, model)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/memes/render")
+async def render_meme_image(prompt: str = Form(...)) -> Response:
+    if not prompt.strip():
+        raise HTTPException(status_code=422, detail="Prompt cannot be empty.")
+    try:
+        image_bytes = await meme_service.generate_image(prompt.strip())
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return Response(content=image_bytes, media_type="image/png")
 
 
 @router.get("/models")

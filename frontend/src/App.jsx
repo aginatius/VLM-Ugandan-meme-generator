@@ -12,7 +12,7 @@ import FinalMeme from "./components/FinalMeme";
 import {
   saveSample,
 } from "./utils/meme";
-import { composeMeme, generateMeme } from "./utils/api";
+import { composeMeme, generateMeme, renderPromptImage } from "./utils/api";
 
 const initialState = {
   page: "home",
@@ -70,14 +70,40 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const proceedToImage = async (skip = false) => {
+  const proceedToImage = async (skip = false, nextImageFile = state.imageFile) => {
+    if (!nextImageFile) {
+      update({ loading: false, error: "Please choose an image or generate one first." });
+      return;
+    }
+
     update({ loading: true, loadingMsg: "Generating captions with the hosted model…", error: "" });
     try {
-      const result = await generateMeme({ imageFile: state.imageFile, topic: state.topic, lang: state.lang, intent: state.intent, style: state.style, model: state.model });
+      const result = await generateMeme({ imageFile: nextImageFile, topic: state.topic, lang: state.lang, intent: state.intent, style: state.style, model: state.model });
       const imageCandidates = [0, 1, 2].map((index) => ({ label: "Uploaded image", imageUrl: result.image_url, score: 96 - index * 4 }));
       const captionCandidates = result.captions.map((candidate) => ({ label: candidate.caption, lang: candidate.language, structure: "one-liner", score: candidate.score }));
-      update({ loading: false, imageCandidates, captionCandidates, selectedImageIdx: 0, selectedCaptionIdx: 0, step: skip ? 2 : 1 });
+      update({ loading: false, imageFile: nextImageFile, imageCandidates, captionCandidates, selectedImageIdx: 0, selectedCaptionIdx: 0, step: skip ? 2 : 1 });
       if (skip) await composeMemeFor(captionCandidates[0].label);
+    } catch (error) {
+      update({ loading: false, error: error.message });
+    }
+  };
+
+  const generateImageFromPrompt = async () => {
+    if (!state.topic.trim()) {
+      update({ error: "Please add a prompt before generating the meme image." });
+      return;
+    }
+
+    update({ loading: true, loadingMsg: "Generating a meme background with your LoRA model…", error: "" });
+    try {
+      const imageUrl = await renderPromptImage({ prompt: `${state.intent}: ${state.topic}` });
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "generated-meme-image.png", {
+        type: blob.type || "image/png",
+      });
+      update({ imageFile: file, loading: false });
+      await proceedToImage(false, file);
     } catch (error) {
       update({ loading: false, error: error.message });
     }
@@ -153,8 +179,14 @@ export default function App() {
           onLang={(lang) => update({ lang })}
           onIntent={(intent) => update({ intent })}
           onStyle={(style) => update({ style })}
-          onGenerate={() => proceedToImage(false)}
-          onSkip={() => proceedToImage(true)}
+          onGenerate={() => {
+            if (state.imageFile) {
+              proceedToImage(false);
+            } else {
+              generateImageFromPrompt();
+            }
+          }}
+          onSkip={() => proceedToImage(true, state.imageFile)}
           onModel={(model) => update({ model })}
         />
       );

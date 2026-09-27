@@ -8,7 +8,7 @@ export default function Home({ onGenerate, onSamples, onPrompt }) {
           <h1>
             Memes that understand <span className="accent">Uganda</span>
           </h1>
-          <p>Describe a situation, get a meme that fits.</p>
+          <p>Upload a photo, describe the moment, and get a caption that sounds like home.</p>
           <div className="btn-row" style={{ marginTop: 0 }}>
             <button className="btn btn-primary" onClick={onGenerate}>
               Start generating →
@@ -42,7 +42,7 @@ export default function Home({ onGenerate, onSamples, onPrompt }) {
             </div>
             <div className="home-how-item">
               <b>2. Pick a template</b>
-              <span>Choose the template that fits your idea best.</span>
+              <span>The finetuned Qwen2.5-VL model reads the scene.</span>
             </div>
             <div className="home-how-item">
               <b>3. Pick a caption</b>
