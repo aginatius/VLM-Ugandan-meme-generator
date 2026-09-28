@@ -56,12 +56,11 @@ export default function Candidates({
                 <>
                   <div className="template-image-wrap">
                     <img
-                      src={candidate.image}
+                      src={candidate.image || candidate.imageUrl}
                       alt={`Template ${index + 1}`}
                       className="template-image"
                     />
                   </div>
-
                   <div className="cand-body">
                     <button
                       className="cand-pick-btn"

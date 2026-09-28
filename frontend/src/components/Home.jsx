@@ -30,19 +30,12 @@ export default function Home({ onNavigate, onPrompt }) {
             Memes that understand{" "}
             <span className="accent">Uganda</span>
           </h1>
-
           <p>
             Describe a situation, get a meme that fits.
           </p>
 
-          <div
-            className="btn-row"
-            style={{ marginTop: 0 }}
-          >
-            <button
-              className="btn btn-primary"
-              onClick={() => onNavigate("generate")}
-            >
+          <div className="btn-row" style={{ marginTop: 0 }}>
+            <button className="btn btn-primary" onClick={() => onNavigate("generate")}>
               Start generating →
             </button>
           </div>
@@ -70,7 +63,6 @@ export default function Home({ onNavigate, onPrompt }) {
           <div className="home-col-head">
             <h2>Samples</h2>
           </div>
-
           <div className="home-samples-grid">
             {HOME_SAMPLES.map((src, index) => (
               <div

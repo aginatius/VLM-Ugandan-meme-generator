@@ -87,6 +87,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0}
 .chip-row{display:flex;flex-wrap:wrap;gap:8px}
 .chip{background:var(--bg-deep);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:12.5px;color:var(--text-muted)}
 .chip.selected{background:var(--amber);border-color:var(--amber);color:var(--bg-deep);font-weight:600}
+.model-badge{display:inline-flex;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(76,154,106,.1);border:1px solid rgba(76,154,106,.45);border-radius:8px;color:var(--green);padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px}
 
 .btn-row{display:flex;gap:12px;margin-top:26px;align-items:center;flex-wrap:wrap}
 .btn{border:none;border-radius:8px;padding:13px 20px;font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:8px;min-height:44px}
@@ -115,7 +116,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0}
 .cand-rank{position:absolute;top:8px;left:8px;background:rgba(20,18,15,.85);color:var(--text);font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;z-index:2}
 .cand-rank.r1{color:var(--amber)}
 .cand-score{position:absolute;top:8px;right:8px;background:rgba(20,18,15,.85);color:var(--green);font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;z-index:2}
-.placeholder-box{aspect-ratio:4/3;background:repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2) 10px,var(--bg-deep) 10px,var(--bg-deep) 20px);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.placeholder-box{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2) 10px,var(--bg-deep) 10px,var(--bg-deep) 20px);color:var(--text-muted);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--line)}
 .cand-body{padding:12px 14px 14px;background:var(--surface)}
 .caption-body{min-height:210px;display:flex;flex-direction:column;justify-content:flex-end}
 .one-line-placeholder{min-height:120px;display:flex;align-items:center}
