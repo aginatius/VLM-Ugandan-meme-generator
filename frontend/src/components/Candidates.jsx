@@ -10,64 +10,139 @@ export default function Candidates({
   const isImage = type === "image";
 
   return (
-    <>
-      <h2>{isImage ? "Templates" : "Captions"}</h2>
+    <div className="candidates-screen">
+      <div className="candidates-header">
+        <div>
+          <h2>
+            {isImage
+              ? "Choose a template"
+              : "Choose a caption"}
+          </h2>
 
-      <div className={`cand-grid ${isImage ? "template-grid" : "caption-grid"}`}>
-        {candidates.slice(0, 3).map((candidate, i) => (
-          <div
-            key={`${candidate.label}-${i}`}
-            className={`cand-card ${i === 0 ? "top" : ""} ${
-              selectedIdx === i ? "selected" : ""
-            }`}
-          >
-            <span className={`cand-rank ${i === 0 ? "r1" : ""}`}>
-              #{i + 1}
-              {isImage && i === 0 ? " · top pick" : ""}
-            </span>
+          <p>
+            {isImage
+              ? "Pick the visual that best fits your idea."
+              : "Pick the caption that best fits your meme."}
+          </p>
+        </div>
+      </div>
 
-            <span className="cand-score">{candidate.score}%</span>
+      <div className="cand-grid">
+        {candidates.slice(0, 3).map((candidate, index) => {
+          const selected = selectedIdx === index;
 
-            {isImage ? (
-              <img className="placeholder-box" src={candidate.imageUrl} alt="Uploaded meme source" />
-            ) : (
-              <div className="cand-body caption-body">
-                <div className="cand-caption-line">{candidate.label}</div>
+          return (
+            <div
+              className={`cand-card ${
+                index === 0 ? "top" : ""
+              } ${selected ? "selected" : ""}`}
+              key={candidate.id || index}
+              onClick={() => onSelect(index)}
+            >
+              <span
+                className={`cand-rank ${
+                  index === 0 ? "r1" : ""
+                }`}
+              >
+                #{index + 1}
+                {index === 0 && " · top pick"}
+              </span>
 
-                <button
-                  className="cand-pick-btn"
-                  onClick={() => onSelect(i)}
-                >
-                  {selectedIdx === i ? "Selected" : "Use this caption"}
-                </button>
-              </div>
-            )}
+              <span className="cand-score">
+                {candidate.score}%
+              </span>
 
-            {isImage && (
-              <div className="cand-body">
-                <button
-                  className="cand-pick-btn"
-                  onClick={() => onSelect(i)}
-                >
-                  {selectedIdx === i ? "Selected" : "Use this template"}
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+              {isImage ? (
+                <>
+                  <div className="template-image-wrap">
+                    <img
+                      src={candidate.image}
+                      alt={`Template ${index + 1}`}
+                      className="template-image"
+                    />
+                  </div>
+
+                  <div className="cand-body">
+                    <button
+                      className="cand-pick-btn"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelect(index);
+                      }}
+                    >
+                      {selected
+                        ? "Selected"
+                        : "Use this template"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="caption-content">
+                    {candidate.structure ===
+                    "setup-punchline" ? (
+                      <>
+                        <div className="caption-setup">
+                          {candidate.setup}
+                        </div>
+
+                        <div className="caption-punchline">
+                          {candidate.punchline}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="cand-one-liner">
+                        {candidate.label}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="cand-body">
+                    <button
+                      className="cand-pick-btn"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelect(index);
+                      }}
+                    >
+                      {selected
+                        ? "Selected"
+                        : "Use this caption"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="btn-row">
-        <button className="btn btn-ghost" onClick={onBack}>
+        <button
+          className="btn btn-ghost"
+          onClick={onBack}
+        >
           ← Back
         </button>
-        <button className="btn btn-primary" onClick={onContinue}>
-          {isImage ? "Generate Caption →" : "Compose meme →"}
+
+        <button
+          className="btn btn-primary"
+          onClick={onContinue}
+        >
+          {isImage
+            ? "Continue with selected →"
+            : "Compose meme →"}
         </button>
-        <button className="btn btn-quiet" onClick={onRegenerate}>
-          Regenerate {isImage ? "candidates" : "captions"}
+
+        <button
+          className="btn btn-quiet"
+          onClick={onRegenerate}
+        >
+          {isImage
+            ? "Regenerate candidates"
+            : "Regenerate captions"}
         </button>
       </div>
-    </>
+    </div>
   );
 }

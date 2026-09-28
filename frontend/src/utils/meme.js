@@ -64,22 +64,30 @@ export function makeImageCandidates(topic) {
   }));
 }
 
-export function makeCaptionCandidates(topic, lang) {
-  const rng = seededRand(`${topic}${lang}${Math.random()}`);
-  const scores = rankedScores(rng, [92, 85, 78]);
-  const langs =
-    lang === "any"
-      ? ["Luganda", "English", "Mix"]
-      : lang === "mix"
-        ? ["Mix", "Mix", "Mix"]
-        : [lang === "lg" ? "Luganda" : "English"];
+export function makeCaptionCandidates() {
+  return [
+    {
+      label: "Boda boda guys at the end of the day",
+      lang: "English",
+      structure: "one-liner",
+      score: 92,
+    },
 
-  return scores.map((score, i) => ({
-    label: "",
-    lang: langs[i % langs.length],
-    structure: i === 1 ? "setup-punchline" : "one-liner",
-    score,
-  }));
+    {
+      setup: "SUIT.",
+      punchline: "ESUUTI",
+      lang: "Mix",
+      structure: "setup-punchline",
+      score: 85,
+    },
+
+    {
+      label: "Nkulaba Ssebo.",
+      lang: "Luganda",
+      structure: "one-liner",
+      score: 78,
+    },
+  ];
 }
 
 export function renderPlaceholderMeme(imageIdx = 0, captionIdx = 0) {

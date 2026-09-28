@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Pipeline from "./components/Pipeline";
@@ -9,27 +10,56 @@ import Loading from "./components/Loading";
 import IntentionStep from "./components/IntentionStep";
 import Candidates from "./components/Candidates";
 import FinalMeme from "./components/FinalMeme";
+
 import {
-  saveSample,
+  makeImageCandidates,
+  makeCaptionCandidates,
+  renderPlaceholderMeme,
 } from "./utils/meme";
 import { composeMeme, generateMeme, renderPromptImage } from "./utils/api";
+
+const TEMPLATES = [
+  {
+    id: 1,
+    label: "Template 1",
+    image: "/templates/template-1.jpg",
+    score: 94,
+  },
+  {
+    id: 2,
+    label: "Template 2",
+    image: "/templates/template-2.jpg",
+    score: 86,
+  },
+  {
+    id: 3,
+    label: "Template 3",
+    image: "/templates/template-3.jpg",
+    score: 79,
+  },
+];
 
 const initialState = {
   page: "home",
   navOpen: false,
+
   topic: "",
   imageFile: null,
   model: "qwen25-vl",
   lang: "en",
   intent: "Humour",
   style: "Relatable",
+
   step: 0,
   loading: false,
   loadingMsg: "",
+
   imageCandidates: [],
   selectedImageIdx: 0,
+
   captionCandidates: [],
   selectedCaptionIdx: 0,
+
   finalDataUrl: null,
   finalScore: null,
   error: "",
@@ -46,12 +76,17 @@ export default function App() {
     localStorage.setItem("meme-studio-theme", theme);
   }, [theme]);
 
-  const update = (patch) => setState((current) => ({ ...current, ...patch }));
+  const update = (patch) => {
+    setState((current) => ({
+      ...current,
+      ...patch,
+    }));
+  };
 
   const showPage = (page) => {
     if (page === "generate") {
       update({
-        page,
+        page: "generate",
         navOpen: false,
         step: 0,
         loading: false,
@@ -64,85 +99,181 @@ export default function App() {
         error: "",
       });
     } else {
-      update({ page, navOpen: false });
-    }
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const proceedToImage = async (skip = false, nextImageFile = state.imageFile) => {
-    if (!nextImageFile) {
-      update({ loading: false, error: "Please choose an image or generate one first." });
-      return;
-    }
-
-    update({ loading: true, loadingMsg: "Generating captions with the hosted model…", error: "" });
-    try {
-      const result = await generateMeme({ imageFile: nextImageFile, topic: state.topic, lang: state.lang, intent: state.intent, style: state.style, model: state.model });
-      const imageCandidates = [0, 1, 2].map((index) => ({ label: "Uploaded image", imageUrl: result.image_url, score: 96 - index * 4 }));
-      const captionCandidates = result.captions.map((candidate) => ({ label: candidate.caption, lang: candidate.language, structure: "one-liner", score: candidate.score }));
-      update({ loading: false, imageFile: nextImageFile, imageCandidates, captionCandidates, selectedImageIdx: 0, selectedCaptionIdx: 0, step: skip ? 2 : 1 });
-      if (skip) await composeMemeFor(captionCandidates[0].label);
-    } catch (error) {
-      update({ loading: false, error: error.message });
-    }
-  };
-
-  const generateImageFromPrompt = async () => {
-    if (!state.topic.trim()) {
-      update({ error: "Please add a prompt before generating the meme image." });
-      return;
-    }
-
-    update({ loading: true, loadingMsg: "Generating a meme background with your LoRA model…", error: "" });
-    try {
-      const imageUrl = await renderPromptImage({ prompt: `${state.intent}: ${state.topic}` });
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const file = new File([blob], "generated-meme-image.png", {
-        type: blob.type || "image/png",
+      update({
+        page,
+        navOpen: false,
       });
-      update({ imageFile: file, loading: false });
-      await proceedToImage(false, file);
-    } catch (error) {
-      update({ loading: false, error: error.message });
     }
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
-  const composeMemeFor = async (caption) => {
-    update({ loading: true, loadingMsg: "Composing final meme…", error: "" });
-    try {
-      const result = await composeMeme({ imageFile: state.imageFile, caption, model: state.model });
-      update({ loading: false, finalDataUrl: result.image_url, finalScore: result.score, step: 3 });
-    } catch (error) {
-      update({ loading: false, error: error.message });
-    }
+  const runLoading = (message, delay, after) => {
+    update({
+      loading: true,
+      loadingMsg: message,
+    });
+
+    window.setTimeout(() => {
+      update({
+        loading: false,
+      });
+
+      after();
+    }, delay);
   };
 
-  const regenerateImages = () => proceedToImage(false);
+  const getImageCandidates = () => {
+    const generated = makeImageCandidates(state.topic);
 
-  const continueToCaptions = () => update({ step: 2 });
+    return generated.map((candidate, index) => ({
+      ...candidate,
+      ...TEMPLATES[index],
+    }));
+  };
 
-  const regenerateCaptions = () => proceedToImage(false);
+  const proceedToImage = (skip = false) => {
+    runLoading(
+      "Interpreting communicative intention…",
+      700,
+      () => {
+        const imageCandidates = getImageCandidates();
 
-  const composeSelectedMeme = () => {
-      const image = state.imageCandidates[state.selectedImageIdx];
-      const caption = state.captionCandidates[state.selectedCaptionIdx];
-      update({ loading: true, loadingMsg: "Composing final meme…", error: "" });
-      composeMeme({ imageFile: state.imageFile, caption: caption.label, model: state.model })
-        .then((result) => {
-          saveSample({
-            id: Date.now(),
-            topic: state.topic,
-            lang: state.lang,
-            intent: state.intent,
-            style: state.style,
-            dataUrl: result.image_url,
-            score: Math.round((image.score + caption.score) / 2),
+        update({
+          imageCandidates,
+          selectedImageIdx: 0,
+        });
+
+        if (!skip) {
+          update({
+            step: 1,
           });
-          update({ loading: false, finalDataUrl: result.image_url, finalScore: result.score, step: 3 });
-        })
-        .catch((error) => update({ loading: false, error: error.message }));
+
+          return;
+        }
+
+        runLoading(
+          "Retrieving and refining visual candidates…",
+          700,
+          () => {
+            runLoading(
+              "Generating captions for the selected image…",
+              700,
+              () => {
+                const captionCandidates = makeCaptionCandidates(
+                  // state.topic,
+                  // state.lang
+                );
+
+                update({
+                  captionCandidates,
+                  selectedCaptionIdx: 0,
+                });
+
+                runLoading(
+                  "Composing final meme…",
+                  700,
+                  () => {
+                    const finalDataUrl = renderPlaceholderMeme(0, 0);
+
+                    const finalScore = Math.round(
+                      (
+                        imageCandidates[0].score +
+                        captionCandidates[0].score
+                      ) / 2
+                    );
+
+                    update({
+                      finalDataUrl,
+                      finalScore,
+                      step: 3,
+                    });
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
+  };
+
+  const regenerateImages = () => {
+    runLoading(
+      "Re-running visual retrieval…",
+      600,
+      () => {
+        update({
+          imageCandidates: getImageCandidates(),
+          selectedImageIdx: 0,
+        });
+      }
+    );
+  };
+
+  const continueToCaptions = () => {
+    runLoading(
+      "Generating captions for the selected image…",
+      700,
+      () => {
+        update({
+          captionCandidates: makeCaptionCandidates(
+            // state.topic,
+            // state.lang
+          ),
+          selectedCaptionIdx: 0,
+          step: 2,
+        });
+      }
+    );
+  };
+
+  const regenerateCaptions = () => {
+    runLoading(
+      "Re-running caption generation…",
+      600,
+      () => {
+        update({
+          captionCandidates: makeCaptionCandidates(
+            // state.topic,
+            // state.lang
+          ),
+          selectedCaptionIdx: 0,
+        });
+      }
+    );
+  };
+
+  const composeMeme = () => {
+    runLoading(
+      "Composing meme…",
+      700,
+      () => {
+        const image =
+          state.imageCandidates[state.selectedImageIdx];
+
+        const caption =
+          state.captionCandidates[state.selectedCaptionIdx];
+
+        const finalDataUrl = renderPlaceholderMeme(
+          state.selectedImageIdx,
+          state.selectedCaptionIdx
+        );
+
+        const finalScore = Math.round(
+          (image.score + caption.score) / 2
+        );
+
+        update({
+          finalDataUrl,
+          finalScore,
+          step: 3,
+        });
+      }
+    );
   };
 
   const startOver = () => {
@@ -198,7 +329,9 @@ export default function App() {
           type="image"
           candidates={state.imageCandidates}
           selectedIdx={state.selectedImageIdx}
-          onSelect={(selectedImageIdx) => update({ selectedImageIdx })}
+          onSelect={(selectedImageIdx) =>
+            update({ selectedImageIdx })
+          }
           onBack={() => update({ step: 0 })}
           onContinue={continueToCaptions}
           onRegenerate={regenerateImages}
@@ -212,7 +345,9 @@ export default function App() {
           type="caption"
           candidates={state.captionCandidates}
           selectedIdx={state.selectedCaptionIdx}
-          onSelect={(selectedCaptionIdx) => update({ selectedCaptionIdx })}
+          onSelect={(selectedCaptionIdx) =>
+            update({ selectedCaptionIdx })
+          }
           onBack={() => update({ step: 1 })}
           onContinue={composeSelectedMeme}
           onRegenerate={regenerateCaptions}
@@ -220,8 +355,11 @@ export default function App() {
       );
     }
 
-    const image = state.imageCandidates[state.selectedImageIdx];
-    const caption = state.captionCandidates[state.selectedCaptionIdx];
+    const image =
+      state.imageCandidates[state.selectedImageIdx];
+
+    const caption =
+      state.captionCandidates[state.selectedCaptionIdx];
 
     return (
       <FinalMeme
@@ -251,7 +389,13 @@ export default function App() {
         onToggle={() => update({ navOpen: !state.navOpen })}
       />
 
-      <div className={`shell ${state.page === "generate" ? "with-sidebar" : ""}`}>
+      <div
+        className={`shell ${
+          state.page === "generate"
+            ? "with-sidebar"
+            : ""
+        }`}
+      >
         {state.page === "generate" && (
           <aside className="sidebar">
             <Pipeline
@@ -263,12 +407,17 @@ export default function App() {
         )}
 
         <main className="main">
-          {state.error && <div className="api-error" role="alert">{state.error}</div>}
-          <div className={`screen ${state.page === "generate" && state.step === 0 ? "narrow" : ""}`}>
+          <div
+            className={`screen ${
+              state.page === "generate" &&
+              state.step === 0
+                ? "narrow"
+                : ""
+            }`}
+          >
             {state.page === "home" && (
               <Home
-                onGenerate={() => showPage("generate")}
-                onSamples={() => showPage("samples")}
+                onNavigate={showPage}
                 onPrompt={(topic) => {
                   update({ topic });
                   showPage("generate");
@@ -277,8 +426,11 @@ export default function App() {
             )}
 
             {state.page === "how" && <HowItWorks />}
+
             {state.page === "samples" && <Samples />}
-            {state.page === "generate" && renderGenerateStep()}
+
+            {state.page === "generate" &&
+              renderGenerateStep()}
           </div>
         </main>
       </div>
