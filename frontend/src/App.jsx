@@ -16,6 +16,7 @@ import {
   makeCaptionCandidates,
   renderPlaceholderMeme,
 } from "./utils/meme";
+import { composeMeme, generateMeme, renderPromptImage } from "./utils/api";
 
 const TEMPLATES = [
   {
@@ -43,6 +44,8 @@ const initialState = {
   navOpen: false,
 
   topic: "",
+  imageFile: null,
+  model: "qwen25-vl",
   lang: "en",
   intent: "Humour",
   style: "Relatable",
@@ -59,6 +62,7 @@ const initialState = {
 
   finalDataUrl: null,
   finalScore: null,
+  error: "",
 };
 
 export default function App() {
@@ -92,6 +96,7 @@ export default function App() {
         selectedCaptionIdx: 0,
         finalDataUrl: null,
         finalScore: null,
+        error: "",
       });
     } else {
       update({
@@ -274,6 +279,7 @@ export default function App() {
   const startOver = () => {
     update({
       topic: "",
+      imageFile: null,
       step: 0,
       loading: false,
       imageCandidates: [],
@@ -282,6 +288,7 @@ export default function App() {
       selectedCaptionIdx: 0,
       finalDataUrl: null,
       finalScore: null,
+      error: "",
     });
   };
 
@@ -294,15 +301,24 @@ export default function App() {
       return (
         <IntentionStep
           topic={state.topic}
+          imageFile={state.imageFile}
           lang={state.lang}
           intent={state.intent}
           style={state.style}
           onTopic={(topic) => update({ topic })}
+          onImage={(imageFile) => update({ imageFile })}
           onLang={(lang) => update({ lang })}
           onIntent={(intent) => update({ intent })}
           onStyle={(style) => update({ style })}
-          onGenerate={() => proceedToImage(false)}
-          onSkip={() => proceedToImage(true)}
+          onGenerate={() => {
+            if (state.imageFile) {
+              proceedToImage(false);
+            } else {
+              generateImageFromPrompt();
+            }
+          }}
+          onSkip={() => proceedToImage(true, state.imageFile)}
+          onModel={(model) => update({ model })}
         />
       );
     }
@@ -333,7 +349,7 @@ export default function App() {
             update({ selectedCaptionIdx })
           }
           onBack={() => update({ step: 1 })}
-          onContinue={composeMeme}
+          onContinue={composeSelectedMeme}
           onRegenerate={regenerateCaptions}
         />
       );
