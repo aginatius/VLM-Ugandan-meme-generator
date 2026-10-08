@@ -1,54 +1,42 @@
-import { useState } from "react";
-import { loadSamples, renderPlaceholderMeme } from "../utils/meme";
-
-const DEFAULT_SAMPLES = [
-  { image: 0, caption: 0 },
-  { image: 1, caption: 0 },
-  { image: 2, caption: 1 },
-  { image: 0, caption: 1 },
-  { image: 1, caption: 1 },
-  { image: 2, caption: 0 },
+const SAMPLE_MEMES = [
+  "/samples/sample-1.jpg",
+  "/samples/sample-2.jpg",
+  "/samples/sample-3.jpg",
+  "/samples/sample-4.jpg",
+  "/samples/sample-5.jpg",
+  "/samples/sample-6.jpg",
 ];
 
 export default function Samples() {
-  const [samples] = useState(() => {
-    const saved = loadSamples();
-
-    if (saved.length) {
-      return saved;
-    }
-
-    return DEFAULT_SAMPLES.map((sample, index) => ({
-      ...sample,
-      id: `default-${index}`,
-      dataUrl: renderPlaceholderMeme(sample.image, sample.caption),
-    }));
-  });
-
   return (
-    <div className="samples-grid">
-      {samples.map((sample) => (
-        <article className="sample-card" key={sample.id}>
-          <div className="sample-visual">
-            <img
-              src={sample.dataUrl}
-              alt="Uganda AI Meme Studio sample"
-            />
-          </div>
+    <>
+      <h2>Samples</h2>
 
-          <div className="sample-body">
-            {sample.dataUrl && (
+      <div className="samples-grid">
+        {SAMPLE_MEMES.map((src, index) => (
+          <article
+            className="sample-card"
+            key={src}
+          >
+            <div className="sample-visual">
+              <img
+                src={src}
+                alt={`Uganda AI Meme sample ${index + 1}`}
+              />
+            </div>
+
+            <div className="sample-body">
               <a
                 className="sample-dl"
-                href={sample.dataUrl}
-                download="uganda-ai-meme.png"
+                href={src}
+                download={`uganda-meme-sample-${index + 1}.jpg`}
               >
                 Download
               </a>
-            )}
-          </div>
-        </article>
-      ))}
-    </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
   );
 }
