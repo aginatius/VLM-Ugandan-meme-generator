@@ -38,17 +38,18 @@ export function composeMeme({ imageFile, caption, model = "qwen25-vl" }) {
   return request("/memes/compose", formData);
 }
 
-export async function renderPromptImage({ prompt }) {
+export async function renderPromptImage({ prompt, seed }) {
   const targetUrl = MODAL_IMAGE_URL || `${API_BASE}/memes/render`;
 
   let response;
   if (MODAL_IMAGE_URL) {
+    const requestSeed = seed ?? crypto.getRandomValues(new Uint32Array(1))[0];
     response = await fetch(targetUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt, seed: requestSeed }),
     });
   } else {
     const formData = new FormData();

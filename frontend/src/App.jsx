@@ -70,22 +70,45 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const composeMemeFor = async (imageFile, caption) => {
+    update({ loading: true, loadingMsg: "Composing final meme…", error: "" });
+    try {
+      const result = await composeMeme({ imageFile, caption, model: state.model });
+      update({ loading: false, finalDataUrl: result.image_url, finalScore: result.score, step: 3 });
+    } catch (error) {
+      update({ loading: false, error: error.message });
+    }
+  };
+
+  const generateCaptionsForImage = async (imageFile, composeFirst = false) => {
+    update({ loading: true, loadingMsg: "Generating captions with the hosted model…", error: "" });
+    try {
+      const result = await generateMeme({ imageFile, topic: state.topic, lang: state.lang, intent: state.intent, style: state.style, model: state.model });
+      const captionCandidates = result.captions.map((candidate) => ({ label: candidate.caption, lang: candidate.language, structure: "one-liner", score: candidate.score }));
+      update({ loading: false, imageFile, captionCandidates, selectedCaptionIdx: 0, step: 2 });
+      if (composeFirst && captionCandidates[0]) {
+        await composeMemeFor(imageFile, captionCandidates[0].label);
+      }
+    } catch (error) {
+      update({ loading: false, error: error.message });
+    }
+  };
+
   const proceedToImage = async (skip = false, nextImageFile = state.imageFile) => {
     if (!nextImageFile) {
       update({ loading: false, error: "Please choose an image or generate one first." });
       return;
     }
 
-    update({ loading: true, loadingMsg: "Generating captions with the hosted model…", error: "" });
-    try {
-      const result = await generateMeme({ imageFile: nextImageFile, topic: state.topic, lang: state.lang, intent: state.intent, style: state.style, model: state.model });
-      const imageCandidates = [0, 1, 2].map((index) => ({ label: "Uploaded image", imageUrl: result.image_url, score: 96 - index * 4 }));
-      const captionCandidates = result.captions.map((candidate) => ({ label: candidate.caption, lang: candidate.language, structure: "one-liner", score: candidate.score }));
-      update({ loading: false, imageFile: nextImageFile, imageCandidates, captionCandidates, selectedImageIdx: 0, selectedCaptionIdx: 0, step: skip ? 2 : 1 });
-      if (skip) await composeMemeFor(captionCandidates[0].label);
-    } catch (error) {
-      update({ loading: false, error: error.message });
-    }
+    const imageUrl = URL.createObjectURL(nextImageFile);
+    const imageCandidates = [{
+      label: "Uploaded photo",
+      imageUrl,
+      file: nextImageFile,
+      score: 100,
+    }];
+    update({ imageFile: nextImageFile, imageCandidates, captionCandidates: [], selectedImageIdx: 0, selectedCaptionIdx: 0, step: 1, error: "" });
+    if (skip) await generateCaptionsForImage(nextImageFile, true);
   };
 
   const generateImageFromPrompt = async () => {
@@ -94,42 +117,59 @@ export default function App() {
       return;
     }
 
-    update({ loading: true, loadingMsg: "Generating a meme background with your LoRA model…", error: "" });
+    update({ loading: true, loadingMsg: "Generating three original images from your topic…", error: "" });
     try {
-      const imageUrl = await renderPromptImage({ prompt: `${state.intent}: ${state.topic}` });
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const file = new File([blob], "generated-meme-image.png", {
-        type: blob.type || "image/png",
-      });
-      update({ imageFile: file, loading: false });
-      await proceedToImage(false, file);
+      const visualDirections = [
+        "Use a wide environmental view with the people and setting visible.",
+        "Use a candid medium shot from a different angle, centered on the main subject.",
+        "Use a close, expressive composition with a noticeably different arrangement of subjects.",
+      ];
+      const basePrompt = `${state.intent}: ${state.topic}. Create an original Ugandan meme image from scratch; do not copy an existing meme or use a fixed template.`;
+      const imageCandidates = [];
+
+      for (const [index, visualDirection] of visualDirections.entries()) {
+        const imageUrl = await renderPromptImage({
+          prompt: `${basePrompt} ${visualDirection}`,
+        });
+        const response = await fetch(imageUrl);
+        if (!response.ok) throw new Error("Could not load a generated image.");
+        const blob = await response.blob();
+        const file = new File([blob], `generated-meme-image-${index + 1}.png`, {
+          type: blob.type || "image/png",
+        });
+        imageCandidates.push({
+          label: `Generated image ${index + 1}`,
+          imageUrl,
+          file,
+          score: 96 - index * 4,
+        });
+      }
+
+      update({ imageFile: imageCandidates[0].file, imageCandidates, loading: false, captionCandidates: [], selectedImageIdx: 0, selectedCaptionIdx: 0, step: 1 });
     } catch (error) {
       update({ loading: false, error: error.message });
     }
   };
 
-  const composeMemeFor = async (caption) => {
-    update({ loading: true, loadingMsg: "Composing final meme…", error: "" });
-    try {
-      const result = await composeMeme({ imageFile: state.imageFile, caption, model: state.model });
-      update({ loading: false, finalDataUrl: result.image_url, finalScore: result.score, step: 3 });
-    } catch (error) {
-      update({ loading: false, error: error.message });
-    }
+  const regenerateImages = () => generateImageFromPrompt();
+
+  const continueToCaptions = () => {
+    const selectedImage = state.imageCandidates[state.selectedImageIdx];
+    if (selectedImage?.file) return generateCaptionsForImage(selectedImage.file);
+    update({ error: "Choose an image before generating captions." });
   };
 
-  const regenerateImages = () => proceedToImage(false);
-
-  const continueToCaptions = () => update({ step: 2 });
-
-  const regenerateCaptions = () => proceedToImage(false);
+  const regenerateCaptions = () => {
+    const selectedImage = state.imageCandidates[state.selectedImageIdx];
+    if (selectedImage?.file) return generateCaptionsForImage(selectedImage.file);
+    update({ error: "Choose an image before generating captions." });
+  };
 
   const composeSelectedMeme = () => {
       const image = state.imageCandidates[state.selectedImageIdx];
       const caption = state.captionCandidates[state.selectedCaptionIdx];
       update({ loading: true, loadingMsg: "Composing final meme…", error: "" });
-      composeMeme({ imageFile: state.imageFile, caption: caption.label, model: state.model })
+      composeMeme({ imageFile: image.file || state.imageFile, caption: caption.label, model: state.model })
         .then((result) => {
           saveSample({
             id: Date.now(),
