@@ -307,8 +307,7 @@ export default function App() {
           <div className={`screen ${state.page === "generate" && state.step === 0 ? "narrow" : ""}`}>
             {state.page === "home" && (
               <Home
-                onGenerate={() => showPage("generate")}
-                onSamples={() => showPage("samples")}
+                onNavigate={showPage}
                 onPrompt={(topic) => {
                   update({ topic });
                   showPage("generate");
