@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 .env
-models/
+# Ignore downloaded model weights at the backend root, not app/models source.
+/models/
 artifacts/
 .venv/
