@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile
 
 from app.config import get_settings
@@ -28,13 +30,19 @@ async def generate_meme(
     language: str = Form("en"),
     style: str = Form("Relatable"),
     model: str = Form("vlm"),
+    excluded_captions: str = Form("[]"),
 ) -> MemeGenerationResponse:
     if not intention.strip():
         raise HTTPException(status_code=422, detail="Intention cannot be empty.")
     image_bytes, content_type = await read_image(image)
     try:
+        excluded = json.loads(excluded_captions)
+        if not isinstance(excluded, list) or len(excluded) > 12 or any(
+            not isinstance(item, str) or len(item) > 1000 for item in excluded
+        ):
+            raise ValueError("excluded_captions must contain at most 12 caption strings.")
         return await meme_service.generate(
-            image_bytes, content_type, intention.strip(), language, style, model
+            image_bytes, content_type, intention.strip(), language, style, model, excluded
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

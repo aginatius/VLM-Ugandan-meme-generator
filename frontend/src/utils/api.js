@@ -19,13 +19,14 @@ async function request(path, formData) {
   return response.json();
 }
 
-export function generateMeme({ imageFile, topic, lang, intent, style, model = "qwen25-vl" }) {
+export function generateMeme({ imageFile, topic, lang, intent, style, model = "qwen25-vl", excludedCaptions = [] }) {
   const formData = new FormData();
   formData.append("image", imageFile);
   formData.append("intention", `${intent}: ${topic}`);
   formData.append("language", lang);
   formData.append("style", style);
   formData.append("model", model);
+  formData.append("excluded_captions", JSON.stringify(excludedCaptions));
   return request("/memes/generate", formData);
 }
 

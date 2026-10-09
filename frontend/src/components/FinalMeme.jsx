@@ -7,11 +7,19 @@ export default function FinalMeme({ image, caption, onBack, onStartOver, onSave 
   const dragRef = useRef(null);
   const [loaded, setLoaded] = useState(null);
   const [error, setError] = useState("");
+  const [notification, setNotification] = useState(null);
+  const [downloading, setDownloading] = useState(false);
   const [position, setPosition] = useState(1);
   const [fontScale, setFontScale] = useState(0.09);
   const [background, setBackground] = useState(true);
   const source = image?.imageUrl || image?.image;
   const ready = loaded?.src === source && !!loaded;
+
+  useEffect(() => {
+    if (!notification) return;
+    const timer = setTimeout(() => setNotification(null), 6000);
+    return () => clearTimeout(timer);
+  }, [notification]);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,17 +60,46 @@ export default function FinalMeme({ image, caption, onBack, onStartOver, onSave 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   }
 
-  function download() {
-    if (!ready) return;
+  async function download() {
+    if (!ready || downloading) return;
+    setDownloading(true);
+    setNotification(null);
+    setError("");
     try {
       const dataUrl = canvasRef.current.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = "uganda-ai-meme.png";
-      link.click();
-      onSave?.(dataUrl);
-    } catch {
+      if (typeof window.showSaveFilePicker === "function") {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: "uganda-ai-meme.png",
+          types: [{ description: "PNG image", accept: { "image/png": [".png"] } }],
+        });
+        const blob = await new Promise((resolve) => canvasRef.current.toBlob(resolve, "image/png"));
+        if (!blob) throw new Error("Could not encode image");
+        const writable = await handle.createWritable();
+        try {
+          await writable.write(blob);
+          await writable.close();
+        } catch (failure) {
+          await writable.abort().catch(() => {});
+          throw failure;
+        }
+        setNotification({ text: "Download completed! Your meme has been saved." });
+      } else {
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = "uganda-ai-meme.png";
+        link.click();
+        setNotification({ text: "Download started! Check your browser's downloads for your meme." });
+      }
+      try {
+        onSave?.(dataUrl);
+      } catch {
+        setError("Your download is ready, but your browser's sample gallery is full.");
+      }
+    } catch (failure) {
+      if (failure.name === "AbortError") return;
       setError("Could not save this meme. Please try again.");
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -71,6 +108,12 @@ export default function FinalMeme({ image, caption, onBack, onStartOver, onSave 
       <h2>Make it yours</h2>
       <p className="screen-sub">Drag the caption up or down. Your download will look exactly like this preview.</p>
       {error && <p role="alert">{error}</p>}
+      {notification && (
+        <div className="download-notification" role="status" aria-live="polite">
+          <span>{notification.text}</span>
+          <button aria-label="Dismiss download notification" onClick={() => setNotification(null)}>{"\u00d7"}</button>
+        </div>
+      )}
       <div className="result-layout">
         <div className="meme-editor-preview">
           {!ready && !error && <p role="status">Opening your image...</p>}
@@ -103,7 +146,7 @@ export default function FinalMeme({ image, caption, onBack, onStartOver, onSave 
             <button className="btn btn-ghost" onClick={() => { setPosition(1); setFontScale(0.09); setBackground(true); }}>Reset caption layout</button>
           </div>
           <div className="result-download">
-            <button className="btn btn-primary" disabled={!ready} onClick={download}>Download meme</button>
+            <button className="btn btn-primary" disabled={!ready || downloading} onClick={download}>{downloading ? "Saving meme..." : "Download meme"}</button>
           </div>
           <div className="result-bottom-nav">
             <button className="btn btn-ghost" onClick={onBack}>{"\u2190"} Back to captions</button>

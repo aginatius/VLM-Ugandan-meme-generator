@@ -1,12 +1,15 @@
 import base64
 import io
 import json
+import re
+import unicodedata
+from difflib import SequenceMatcher
 
 import httpx
 from PIL import Image, UnidentifiedImageError
 
 from app.config import Settings
-from app.models.hf_client import HuggingFaceVisionClient
+from app.models.hf_client import HuggingFaceInferenceError, HuggingFaceVisionClient
 from app.schemas import CaptionCandidate, MemeComposeResponse, MemeGenerationResponse
 from app.services.image_renderer import MemeRenderer
 
@@ -29,26 +32,74 @@ class MemeService:
         language: str,
         style: str,
         model: str,
+        excluded_captions: list[str] | None = None,
     ) -> MemeGenerationResponse:
         model_name = self._model_name(model)
         prompt = self._prompt(intention, language, style)
         captions = []
-        for variation in ("fresh and concise", "unexpected and conversational", "dry and highly relatable"):
-            caption = await self.client.generate_caption(
-                image, content_type, f"{prompt}\nVariation: {variation}.", model_name
-            )
-            captions.append(
-                CaptionCandidate(
-                    caption=caption,
-                    language=language,
-                    score=max(60, 94 - len(captions) * 7),
-                )
+        avoid = list(excluded_captions or [])
+        directions = (
+            "Write a first-person inner thought about an unexpected consequence in the image.",
+            "Write a short spoken reaction from a different character, using a different joke and sentence structure.",
+            "Write an ironic comparison between expectation and reality, with a new punchline and vocabulary.",
+        )
+        for direction in directions:
+            for attempt in range(2):
+                variation_prompt = f"{prompt}\nCreative direction: {direction}"
+                if avoid:
+                    variation_prompt += (
+                        "\nPreviously used captions (reference only): " + json.dumps(avoid, ensure_ascii=False)
+                        + "\nDo not repeat or paraphrase these captions. Use a different joke, subject angle, opening, and punchline."
+                    )
+                if attempt:
+                    variation_prompt += "\nYour last attempt was too similar. Invent a completely new idea."
+                caption = self._candidate_text(await self.client.generate_caption(
+                    image, content_type, variation_prompt, model_name
+                ), language)
+                if not caption or any(self._similar_caption(caption, previous) for previous in avoid):
+                    continue
+                captions.append(CaptionCandidate(
+                    caption=caption, language=language, score=max(60, 94 - len(captions) * 7)
+                ))
+                avoid.append(caption)
+                break
+        if not captions:
+            raise HuggingFaceInferenceError(
+                "The caption model kept repeating earlier captions. Please regenerate or adjust your topic."
             )
 
         return MemeGenerationResponse(
             model=model,
             image_url=self._data_url(image, content_type),
             captions=captions,
+        )
+
+    @staticmethod
+    def _candidate_text(caption: str, language: str) -> str:
+        # These supported languages use Latin script. Some sampled model outputs
+        # append an unsolicited translation; never show that tail as the caption.
+        if language in {"en", "lg", "mix", "any"}:
+            for index, character in enumerate(caption):
+                if character.isalpha() and "LATIN" not in unicodedata.name(character, ""):
+                    caption = caption[:index]
+                    break
+        caption = re.sub(r"#\w+", "", caption)
+        return caption.strip().strip('"')
+
+    @staticmethod
+    def _similar_caption(first: str, second: str) -> bool:
+        def normalize(text):
+            return " ".join(re.findall(r"\w+", text.casefold()))
+        a, b = normalize(first), normalize(second)
+        if not a or not b:
+            return a == b
+        if a == b or SequenceMatcher(None, a, b).ratio() >= 0.78:
+            return True
+        tokens_a, tokens_b = set(a.split()), set(b.split())
+        common = len(tokens_a & tokens_b)
+        return (
+            common / len(tokens_a | tokens_b) >= 0.65
+            or common / min(len(tokens_a), len(tokens_b)) >= 0.85
         )
 
     def compose(
@@ -165,6 +216,7 @@ class MemeService:
         return (
             "You create a short, original Ugandan meme caption. Inspect the image carefully. "
             f"Communicative intention: {intention}. Tone: {style}. Language: {language_name}. "
-            "Use culturally respectful Ugandan context when appropriate. Return only the caption, "
+            "Use culturally respectful Ugandan context when appropriate. Use at most 20 words. "
+            "Write only in the requested language; do not append translations into other languages. Return only the caption, "
             "with no labels, explanation, hashtags, or quotation marks."
         )

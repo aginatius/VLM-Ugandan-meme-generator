@@ -360,3 +360,6 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0}
 .caption-background-toggle[aria-pressed=true]{border-color:var(--amber)}
 .result-download .btn{width:100%;justify-content:center}
 .result-bottom-nav .btn{white-space:normal}
+
+.download-notification{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100vw - 24px);padding:12px 16px;border:1px solid var(--green);border-radius:12px;background:var(--surface);color:var(--text);box-shadow:0 8px 30px #0005;font-size:15px;line-height:1.5}
+.download-notification button{flex-shrink:0;min-width:44px;min-height:44px;background:transparent;border:0;color:var(--text);font-size:24px}

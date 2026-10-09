@@ -105,10 +105,10 @@ export default function App() {
     }
   };
 
-  const generateCaptionsForImage = async (imageFile, composeFirst = false) => {
+  const generateCaptionsForImage = async (imageFile, composeFirst = false, excludedCaptions = []) => {
     update({ loading: true, loadingMsg: "Generating captions with the hosted model…", error: "" });
     try {
-      const result = await generateMeme({ imageFile, topic: state.topic, lang: state.lang, intent: state.intent, style: state.style, model: state.model });
+      const result = await generateMeme({ imageFile, topic: state.topic, lang: state.lang, intent: state.intent, style: state.style, model: state.model, excludedCaptions });
       const captionCandidates = result.captions.map((candidate) => ({ label: candidate.caption, lang: candidate.language, structure: "one-liner", score: candidate.score }));
       update({ loading: false, imageFile, captionCandidates, selectedCaptionIdx: 0, step: 2 });
       if (composeFirst && captionCandidates[0]) {
@@ -214,7 +214,7 @@ export default function App() {
     const selectedImage = state.imageCandidates[state.selectedImageIdx];
     if (selectedImage?.file) {
       stopImageGeneration();
-      return generateCaptionsForImage(selectedImage.file);
+      return generateCaptionsForImage(selectedImage.file, false, state.captionCandidates.map((candidate) => candidate.label));
     }
     update({ error: "Choose an image before generating captions." });
   };

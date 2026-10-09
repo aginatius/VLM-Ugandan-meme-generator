@@ -109,7 +109,10 @@ class CaptionModel:
         ).to(self.model.device)
 
         with torch.inference_mode():
-            generated_ids = self.model.generate(**inputs, max_new_tokens=64)
+            generated_ids = self.model.generate(
+                **inputs, max_new_tokens=64, do_sample=True,
+                temperature=0.8, top_p=0.9, repetition_penalty=1.12,
+            )
 
         trimmed_ids = [
             output_ids[len(input_ids) :]

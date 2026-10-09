@@ -45,6 +45,8 @@ Images appear one at a time as each request completes. A failed candidate does n
 
 The Modal image model uses DPM-Solver++ with 20 sampling steps. Deploy changes to this sampler with `python -m modal deploy backend/src/app/models/modal_api.py`; Git pushes alone do not deploy Modal. GPU startup can still delay the first image after inactivity. Keeping containers warm reduces startup latency but adds idle GPU charges.
 
+Caption candidates use different creative directions and sampled decoding. The backend filters exact repeats and close wording, with at most two attempts per direction. It returns fewer candidates if the model cannot produce three distinct options, rather than padding with duplicates. Regeneration sends the current captions as exclusions. Deploy caption decoding changes with `python -m modal deploy backend/src/app/models/modal_caption_api.py`.
+
 ## Modal caption model
 
 The fine-tuned Qwen vision-language adapter can run on Modal when it is not available through Hugging Face Inference Providers. Create a Modal secret named `huggingface-secret` with an `HF_TOKEN` value that can read both the adapter repository and its base model. The adapter's `adapter_config.json` must name a Qwen2.5-VL base model (`qwen2_5_vl`); Modal loads that base model and attaches `adapter_model.safetensors`. A text-only Qwen2 checkpoint cannot accept meme images. From the repository root, deploy it with:
