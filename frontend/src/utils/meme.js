@@ -147,7 +147,7 @@ export function loadSamples() {
 
 export function saveSample(entry) {
   const current = loadSamples();
-  const updated = [entry, ...current].slice(0, 16);
+  const updated = [entry, ...current.filter((sample) => sample.id !== entry.id)].slice(0, 16);
   localStorage.setItem("gallery-feed", JSON.stringify(updated));
   return updated;
 }

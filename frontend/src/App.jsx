@@ -33,6 +33,7 @@ const initialState = {
   selectedCaptionIdx: 0,
   finalDataUrl: null,
   finalScore: null,
+  finalSampleId: null,
   error: "",
 };
 
@@ -84,6 +85,7 @@ export default function App() {
         selectedCaptionIdx: 0,
         finalDataUrl: null,
         finalScore: null,
+        finalSampleId: null,
         error: "",
       });
     } else {
@@ -97,7 +99,7 @@ export default function App() {
     update({ loading: true, loadingMsg: "Composing final meme…", error: "" });
     try {
       const result = await composeMeme({ imageFile, caption, model: state.model });
-      update({ loading: false, finalDataUrl: result.image_url, finalScore: result.score, step: 3 });
+      update({ loading: false, finalDataUrl: result.image_url, finalScore: result.score, finalSampleId: null, step: 3 });
     } catch (error) {
       update({ loading: false, error: error.message });
     }
@@ -223,8 +225,9 @@ export default function App() {
       update({ loading: true, loadingMsg: "Composing final meme…", error: "" });
       composeMeme({ imageFile: image.file || state.imageFile, caption: caption.label, model: state.model })
         .then((result) => {
+          const sampleId = Date.now();
           saveSample({
-            id: Date.now(),
+            id: sampleId,
             topic: state.topic,
             lang: state.lang,
             intent: state.intent,
@@ -232,7 +235,7 @@ export default function App() {
             dataUrl: result.image_url,
             score: Math.round((image.score + caption.score) / 2),
           });
-          update({ loading: false, finalDataUrl: result.image_url, finalScore: result.score, step: 3 });
+          update({ loading: false, finalDataUrl: result.image_url, finalScore: result.score, finalSampleId: sampleId, step: 3 });
         })
         .catch((error) => update({ loading: false, error: error.message }));
   };
@@ -250,6 +253,7 @@ export default function App() {
       selectedCaptionIdx: 0,
       finalDataUrl: null,
       finalScore: null,
+      finalSampleId: null,
       error: "",
     });
   };
@@ -323,6 +327,11 @@ export default function App() {
         image={image}
         caption={caption}
         finalDataUrl={state.finalDataUrl}
+        onSave={(dataUrl) => {
+          const sampleId = state.finalSampleId || Date.now();
+          saveSample({ id: sampleId, topic: state.topic, lang: state.lang, intent: state.intent, style: state.style, dataUrl, score: state.finalScore });
+          update({ finalDataUrl: dataUrl, finalSampleId: sampleId });
+        }}
         onBack={() => update({ step: 2 })}
         onStartOver={startOver}
       />

@@ -33,7 +33,7 @@ export default function Header({
           </span>
         </button>
 
-        <nav className={`site-nav ${navOpen ? "open" : ""}`}>
+        <nav id="main-navigation" aria-label="Main navigation" className={`site-nav ${navOpen ? "open" : ""}`}>
           {items.map(([id, label]) => (
             <button
               key={id}
@@ -61,6 +61,7 @@ export default function Header({
           className="nav-toggle"
           aria-label="Menu"
           aria-expanded={navOpen}
+          aria-controls="main-navigation"
           onClick={onToggle}
         >
           ☰
