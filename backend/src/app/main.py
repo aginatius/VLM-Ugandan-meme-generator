@@ -26,6 +26,9 @@ def health_check() -> dict[str, str]:
         "caption_model_configured": str(
             bool(settings.modal_caption_url or settings.hf_api_token)
         ).lower(),
+        "image_model_configured": str(
+            bool(settings.modal_image_url or settings.hf_api_token)
+        ).lower(),
     }
 
 

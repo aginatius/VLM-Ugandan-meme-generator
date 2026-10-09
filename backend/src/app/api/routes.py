@@ -58,14 +58,17 @@ async def compose_meme(
 
 
 @router.post("/memes/render")
-async def render_meme_image(prompt: str = Form(...)) -> Response:
+async def render_meme_image(
+    prompt: str = Form(...), seed: int | None = Form(None)
+) -> Response:
     if not prompt.strip():
         raise HTTPException(status_code=422, detail="Prompt cannot be empty.")
     try:
-        image_bytes = await meme_service.generate_image(prompt.strip())
+        image_bytes = await meme_service.generate_image(prompt.strip(), seed)
     except ValueError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    return Response(content=image_bytes, media_type="image/png")
+    media_type = "image/jpeg" if image_bytes.startswith(b"\xff\xd8\xff") else "image/png"
+    return Response(content=image_bytes, media_type=media_type)
 
 
 @router.get("/models")

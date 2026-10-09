@@ -1,5 +1,4 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
-const MODAL_IMAGE_URL = (import.meta.env.VITE_MODAL_IMAGE_URL || "").replace(/\/$/, "");
 
 async function request(path, formData) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -39,26 +38,13 @@ export function composeMeme({ imageFile, caption, model = "qwen25-vl" }) {
 }
 
 export async function renderPromptImage({ prompt, seed }) {
-  const targetUrl = MODAL_IMAGE_URL || `${API_BASE}/memes/render`;
-
-  let response;
-  if (MODAL_IMAGE_URL) {
-    const requestSeed = seed ?? crypto.getRandomValues(new Uint32Array(1))[0];
-    response = await fetch(targetUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt, seed: requestSeed }),
-    });
-  } else {
-    const formData = new FormData();
-    formData.append("prompt", prompt);
-    response = await fetch(targetUrl, {
-      method: "POST",
-      body: formData,
-    });
-  }
+  const formData = new FormData();
+  formData.append("prompt", prompt);
+  formData.append("seed", seed ?? crypto.getRandomValues(new Uint32Array(1))[0]);
+  const response = await fetch(`${API_BASE}/memes/render`, {
+    method: "POST",
+    body: formData,
+  });
 
   if (!response.ok) {
     let detail = "The image model could not complete the request.";

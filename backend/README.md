@@ -33,6 +33,14 @@ Then configure the frontend with `VITE_API_BASE_URL=http://localhost:8000/api` b
 
 When `MODAL_CAPTION_URL` is set, image caption requests go to Modal. Otherwise, the backend uses the Hugging Face OpenAI-compatible router at `/v1/chat/completions`.
 
+## Combined Modal workflow
+
+The frontend sends all model requests through this API. `/api/memes/render` calls the Modal image model; the selected image is uploaded to `/api/memes/generate` for caption candidates from the Modal caption model. `/api/memes/compose` renders the selected caption onto that same image and returns the finished meme.
+
+The existing Modal image and caption endpoints are configured as defaults in `app/config.py`. Override them on Render with `MODAL_IMAGE_URL` and `MODAL_CAPTION_URL` when deploying different endpoints. Set either value to an empty string to use its Hugging Face fallback. `MODAL_IMAGE_TIMEOUT_SECONDS` and `MODAL_CAPTION_TIMEOUT_SECONDS` default to 600 to allow GPU startup. Set `CORS_ORIGINS=https://uganda-ai-meme-studio.vercel.app` on Render. `/health` reports whether each model is configured, not whether inference has succeeded.
+
+On Vercel, set `VITE_API_BASE_URL=https://ugandan-meme-generator-api.onrender.com/api` and rebuild. A separate `VITE_MODAL_IMAGE_URL` is no longer used. Deploy both services from the branch containing these changes.
+
 ## Modal caption model
 
 The fine-tuned Qwen vision-language adapter can run on Modal when it is not available through Hugging Face Inference Providers. Create a Modal secret named `huggingface-secret` with an `HF_TOKEN` value that can read both the adapter repository and its base model. The adapter's `adapter_config.json` must name a Qwen2.5-VL base model (`qwen2_5_vl`); Modal loads that base model and attaches `adapter_model.safetensors`. A text-only Qwen2 checkpoint cannot accept meme images. From the repository root, deploy it with:

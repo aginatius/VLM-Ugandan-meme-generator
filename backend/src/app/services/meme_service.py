@@ -60,7 +60,26 @@ class MemeService:
             score=min(98, max(65, 92 - len(caption.split()) // 4)),
         )
 
-    async def generate_image(self, prompt: str) -> bytes:
+    async def generate_image(self, prompt: str, seed: int | None = None) -> bytes:
+        if self.settings.modal_image_url:
+            payload = {"prompt": prompt}
+            if seed is not None:
+                payload["seed"] = seed
+            try:
+                async with httpx.AsyncClient(
+                    timeout=self.settings.modal_image_timeout_seconds
+                ) as client:
+                    response = await client.post(self.settings.modal_image_url, json=payload)
+            except httpx.HTTPError as exc:
+                raise ValueError("Could not reach the Modal image model. Please try again.") from exc
+            if response.is_error:
+                raise ValueError(
+                    f"Modal image generation failed ({response.status_code}): {response.text[:500]}"
+                )
+            if not response.headers.get("content-type", "").startswith("image/") or not response.content:
+                raise ValueError("Modal returned an invalid image response.")
+            return response.content
+
         if not self.settings.hf_api_token:
             raise ValueError("HF_API_TOKEN is not configured on the backend.")
 

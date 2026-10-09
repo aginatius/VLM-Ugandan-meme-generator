@@ -8,8 +8,10 @@ class Settings(BaseSettings):
     environment: str = "development"
     hf_api_token: str = ""
     hf_api_base_url: str = "https://router.huggingface.co/v1"
-    modal_caption_url: str = ""
+    modal_caption_url: str = "https://mwizerwatimothy204--ugmeme-caption-service-captionmodel--cd836d.modal.run"
     modal_caption_timeout_seconds: float = 600.0
+    modal_image_url: str = "https://mwizerwatimothy204--ugmeme-vlm-backend-mememodel-generate.modal.run"
+    modal_image_timeout_seconds: float = 600.0
     hf_api_inference_base_url: str = "https://api-inference.huggingface.co/models"
     hf_paligemma2_model: str = "google/paligemma2-3b-pt-224"
     hf_qwen25_vl_model: str = "Mwizerwa/meme-qwen2.5-vl-finetuned"

@@ -68,6 +68,6 @@ $env:PYTHONPATH = "src"
 uvicorn app.main:app --reload --port 8000
 ```
 
-Set `HF_API_TOKEN` in `backend/.env` if using either Hugging Face fallback. Set `MODAL_CAPTION_URL` there to use the Modal caption model. In `frontend/.env.local`, set `VITE_API_BASE_URL=http://localhost:8000/api`; set `VITE_MODAL_IMAGE_URL` to use the Modal image model. Then run the frontend with `cd frontend`, `npm install`, and `npm run dev`.
+Set `HF_API_TOKEN` in `backend/.env` if using either Hugging Face fallback. The backend uses the existing Modal image and caption endpoints by default; override them with `MODAL_IMAGE_URL` and `MODAL_CAPTION_URL`. In `frontend/.env.local`, set `VITE_API_BASE_URL=http://localhost:8000/api` for a local backend. All image generation, captioning, and composition requests go through that backend. Then run the frontend with `cd frontend`, `npm install`, and `npm run dev`.
 
 For the Hugging Face Space Docker image, build from the repository root with `docker build -t uganda-meme-studio .`.
