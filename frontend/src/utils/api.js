@@ -37,13 +37,14 @@ export function composeMeme({ imageFile, caption, model = "qwen25-vl" }) {
   return request("/memes/compose", formData);
 }
 
-export async function renderPromptImage({ prompt, seed }) {
+export async function renderPromptImage({ prompt, seed, signal }) {
   const formData = new FormData();
   formData.append("prompt", prompt);
   formData.append("seed", seed ?? crypto.getRandomValues(new Uint32Array(1))[0]);
   const response = await fetch(`${API_BASE}/memes/render`, {
     method: "POST",
     body: formData,
+    signal,
   });
 
   if (!response.ok) {
@@ -57,5 +58,18 @@ export async function renderPromptImage({ prompt, seed }) {
     throw new Error(detail);
   }
 
-  return URL.createObjectURL(await response.blob());
+  const blob = await response.blob();
+  if (!blob.size || !blob.type.startsWith("image/")) {
+    throw new Error("The model did not return an image. Please retry this candidate.");
+  }
+  const imageUrl = URL.createObjectURL(blob);
+  try {
+    const preview = new Image();
+    preview.src = imageUrl;
+    await preview.decode();
+    return { imageUrl, blob };
+  } catch {
+    URL.revokeObjectURL(imageUrl);
+    throw new Error("The generated image could not be opened. Please retry this candidate.");
+  }
 }

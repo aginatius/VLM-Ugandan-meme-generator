@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Pipeline from "./components/Pipeline";
@@ -26,6 +26,7 @@ const initialState = {
   step: 0,
   loading: false,
   loadingMsg: "",
+  imageGenerating: false,
   imageCandidates: [],
   selectedImageIdx: 0,
   captionCandidates: [],
@@ -37,6 +38,13 @@ const initialState = {
 
 export default function App() {
   const [state, setState] = useState(initialState);
+  const imageRun = useRef(null);
+  const imageUrls = useRef(new Set());
+
+  useEffect(() => () => {
+    imageRun.current?.abort();
+    imageUrls.current.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
   const [theme, setTheme] = useState(
     () => localStorage.getItem("meme-studio-theme") || "dark"
   );
@@ -48,7 +56,22 @@ export default function App() {
 
   const update = (patch) => setState((current) => ({ ...current, ...patch }));
 
+  const stopImageGeneration = () => {
+    imageRun.current?.abort();
+    imageRun.current = null;
+    setState((current) => ({
+      ...current,
+      imageGenerating: false,
+      imageCandidates: current.imageCandidates.map((candidate) =>
+        candidate.status === "pending"
+          ? { ...candidate, status: "error", error: "Generation stopped. Retry this image." }
+          : candidate
+      ),
+    }));
+  };
+
   const showPage = (page) => {
+    stopImageGeneration();
     if (page === "generate") {
       update({
         page,
@@ -111,43 +134,66 @@ export default function App() {
     if (skip) await generateCaptionsForImage(nextImageFile, true);
   };
 
-  const generateImageFromPrompt = async () => {
-    if (!state.topic.trim()) {
-      update({ error: "Please add a prompt before generating the meme image." });
-      return;
-    }
+  const generateImageFromPrompt = async (retryIndex = null) => {
+    if (!state.topic.trim() || state.imageGenerating) return;
+    imageRun.current?.abort();
+    const controller = new AbortController();
+    imageRun.current = controller;
+    const visualDirections = [
+      "Use a wide environmental view with the people and setting visible.",
+      "Use a candid medium shot from a different angle, centered on the main subject.",
+      "Use a close, expressive composition with a noticeably different arrangement of subjects.",
+    ];
+    const basePrompt = `${state.topic}. Ugandan setting. ${state.style} mood. No text or letters.`;
+    const indexes = retryIndex === null ? [0, 1, 2] : [retryIndex];
+    setState((current) => ({
+      ...current,
+      loading: false,
+      imageGenerating: true,
+      step: 1,
+      error: "",
+      captionCandidates: [],
+      ...(retryIndex === null ? { imageFile: null, selectedImageIdx: 0 } : {}),
+      imageCandidates: retryIndex === null
+        ? indexes.map((index) => ({ id: index, label: `Generated image ${index + 1}`, status: "pending" }))
+        : current.imageCandidates.map((candidate, index) => index === retryIndex
+          ? { ...candidate, status: "pending", error: "" } : candidate),
+    }));
 
-    update({ loading: true, loadingMsg: "Generating three original images from your topic…", error: "" });
-    try {
-      const visualDirections = [
-        "Use a wide environmental view with the people and setting visible.",
-        "Use a candid medium shot from a different angle, centered on the main subject.",
-        "Use a close, expressive composition with a noticeably different arrangement of subjects.",
-      ];
-      const basePrompt = `${state.intent}: ${state.topic}. Create an original Ugandan meme image from scratch; do not copy an existing meme or use a fixed template.`;
-      const imageCandidates = [];
-
-      for (const [index, visualDirection] of visualDirections.entries()) {
-        const imageUrl = await renderPromptImage({
-          prompt: `${basePrompt} ${visualDirection}`,
+    for (const index of indexes) {
+      if (controller.signal.aborted) break;
+      try {
+        const { imageUrl, blob } = await renderPromptImage({
+          prompt: `${basePrompt} ${visualDirections[index]}`,
+          signal: controller.signal,
         });
-        const response = await fetch(imageUrl);
-        if (!response.ok) throw new Error("Could not load a generated image.");
-        const blob = await response.blob();
-        const file = new File([blob], `generated-meme-image-${index + 1}.png`, {
-          type: blob.type || "image/png",
-        });
-        imageCandidates.push({
-          label: `Generated image ${index + 1}`,
-          imageUrl,
-          file,
-          score: 96 - index * 4,
-        });
+        if (controller.signal.aborted) {
+          URL.revokeObjectURL(imageUrl);
+          break;
+        }
+        imageUrls.current.add(imageUrl);
+        const extension = blob.type === "image/jpeg" ? "jpg" : "png";
+        const file = new File([blob], `generated-meme-image-${index + 1}.${extension}`, { type: blob.type });
+        setState((current) => ({
+          ...current,
+          imageFile: current.imageFile || file,
+          selectedImageIdx: current.imageCandidates[current.selectedImageIdx]?.file ? current.selectedImageIdx : index,
+          imageCandidates: current.imageCandidates.map((candidate, slot) => slot === index
+            ? { id: index, label: `Generated image ${index + 1}`, imageUrl, file, status: "ready", score: 96 - index * 4 }
+            : candidate),
+        }));
+      } catch (error) {
+        if (controller.signal.aborted) break;
+        setState((current) => ({
+          ...current,
+          imageCandidates: current.imageCandidates.map((candidate, slot) => slot === index
+            ? { ...candidate, status: "error", error: error.message } : candidate),
+        }));
       }
-
-      update({ imageFile: imageCandidates[0].file, imageCandidates, loading: false, captionCandidates: [], selectedImageIdx: 0, selectedCaptionIdx: 0, step: 1 });
-    } catch (error) {
-      update({ loading: false, error: error.message });
+    }
+    if (imageRun.current === controller) {
+      imageRun.current = null;
+      update({ imageGenerating: false });
     }
   };
 
@@ -155,13 +201,19 @@ export default function App() {
 
   const continueToCaptions = () => {
     const selectedImage = state.imageCandidates[state.selectedImageIdx];
-    if (selectedImage?.file) return generateCaptionsForImage(selectedImage.file);
+    if (selectedImage?.file) {
+      stopImageGeneration();
+      return generateCaptionsForImage(selectedImage.file);
+    }
     update({ error: "Choose an image before generating captions." });
   };
 
   const regenerateCaptions = () => {
     const selectedImage = state.imageCandidates[state.selectedImageIdx];
-    if (selectedImage?.file) return generateCaptionsForImage(selectedImage.file);
+    if (selectedImage?.file) {
+      stopImageGeneration();
+      return generateCaptionsForImage(selectedImage.file);
+    }
     update({ error: "Choose an image before generating captions." });
   };
 
@@ -186,6 +238,7 @@ export default function App() {
   };
 
   const startOver = () => {
+    stopImageGeneration();
     update({
       topic: "",
       imageFile: null,
@@ -236,10 +289,12 @@ export default function App() {
       return (
         <Candidates
           type="image"
+          generating={state.imageGenerating}
+          onRetry={(index) => generateImageFromPrompt(index)}
           candidates={state.imageCandidates}
           selectedIdx={state.selectedImageIdx}
           onSelect={(selectedImageIdx) => update({ selectedImageIdx })}
-          onBack={() => update({ step: 0 })}
+          onBack={() => { stopImageGeneration(); update({ step: 0 }); }}
           onContinue={continueToCaptions}
           onRegenerate={regenerateImages}
         />
@@ -296,7 +351,7 @@ export default function App() {
           <aside className="sidebar">
             <Pipeline
               step={state.step}
-              loading={state.loading}
+              loading={state.loading || state.imageGenerating}
               onStep={(step) => update({ step })}
             />
           </aside>

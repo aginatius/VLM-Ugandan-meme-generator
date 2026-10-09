@@ -1,7 +1,9 @@
 import base64
+import io
 import json
 
 import httpx
+from PIL import Image, UnidentifiedImageError
 
 from app.config import Settings
 from app.models.hf_client import HuggingFaceVisionClient
@@ -78,6 +80,7 @@ class MemeService:
                 )
             if not response.headers.get("content-type", "").startswith("image/") or not response.content:
                 raise ValueError("Modal returned an invalid image response.")
+            self._validate_generated_image(response.content)
             return response.content
 
         if not self.settings.hf_api_token:
@@ -110,6 +113,7 @@ class MemeService:
 
         content_type = response.headers.get("content-type", "")
         if content_type.startswith("image/"):
+            self._validate_generated_image(response.content)
             return response.content
 
         try:
@@ -123,11 +127,26 @@ class MemeService:
                 if isinstance(value, list) and value:
                     first = value[0]
                     if isinstance(first, str):
-                        return base64.b64decode(first)
+                        image = base64.b64decode(first)
+                        self._validate_generated_image(image)
+                        return image
                 if isinstance(value, str):
-                    return base64.b64decode(value)
+                    image = base64.b64decode(value)
+                    self._validate_generated_image(image)
+                    return image
 
         raise ValueError("Hugging Face returned an unexpected image payload.")
+
+    @staticmethod
+    def _validate_generated_image(content: bytes) -> None:
+        try:
+            with Image.open(io.BytesIO(content)) as image:
+                image.load()
+                extrema = image.convert("RGB").getextrema()
+                if all(high - low <= 2 for low, high in extrema):
+                    raise ValueError("The model returned a blank image. Please retry this candidate.")
+        except (UnidentifiedImageError, OSError) as exc:
+            raise ValueError("The model returned a damaged image. Please retry this candidate.") from exc
 
     def _model_name(self, model: str) -> str:
         settings_name = self.MODEL_ALIASES.get(model)

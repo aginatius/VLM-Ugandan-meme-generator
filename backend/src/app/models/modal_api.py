@@ -1,6 +1,6 @@
 import io
 
-from fastapi import Response
+from fastapi import HTTPException, Response
 from modal import App, Image, enter, fastapi_endpoint
 
 image = (
@@ -24,13 +24,16 @@ class MemeModel:
     @enter()
     def load_model(self):
         import torch
-        from diffusers import DiffusionPipeline
+        from diffusers import DiffusionPipeline, DPMSolverMultistepScheduler
 
         self.pipe = DiffusionPipeline.from_pretrained(
             "runwayml/stable-diffusion-v1-5",
             torch_dtype=torch.float16,
         )
         self.pipe.load_lora_weights("Mwizerwa/ugmeme-sd15-lora")
+        self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(
+            self.pipe.scheduler.config, algorithm_type="dpmsolver++"
+        )
         self.pipe.to("cuda")
 
     @fastapi_endpoint(method="POST")
@@ -47,11 +50,14 @@ class MemeModel:
                 raise ValueError("seed must be an integer") from exc
             generator = torch.Generator(device="cuda").manual_seed(seed)
 
-        generated = self.pipe(
+        result = self.pipe(
             prompt,
-            num_inference_steps=30,
+            num_inference_steps=20,
             generator=generator,
-        ).images[0]
+        )
+        if result.nsfw_content_detected and any(result.nsfw_content_detected):
+            raise HTTPException(status_code=422, detail="The model could not return this image. Try a different prompt.")
+        generated = result.images[0]
 
         buffer = io.BytesIO()
         generated.save(buffer, format="JPEG")

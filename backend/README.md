@@ -41,6 +41,10 @@ The existing Modal image and caption endpoints are configured as defaults in `ap
 
 On Vercel, set `VITE_API_BASE_URL=https://ugandan-meme-generator-api.onrender.com/api` and rebuild. A separate `VITE_MODAL_IMAGE_URL` is no longer used. Deploy both services from the branch containing these changes.
 
+Images appear one at a time as each request completes. A failed candidate does not discard ready images; retry that candidate or continue with any ready image. Continuing stops the browser's remaining image requests. Generated images are decoded before display, and the backend rejects damaged or solid blank images with a retryable error.
+
+The Modal image model uses DPM-Solver++ with 20 sampling steps. Deploy changes to this sampler with `python -m modal deploy backend/src/app/models/modal_api.py`; Git pushes alone do not deploy Modal. GPU startup can still delay the first image after inactivity. Keeping containers warm reduces startup latency but adds idle GPU charges.
+
 ## Modal caption model
 
 The fine-tuned Qwen vision-language adapter can run on Modal when it is not available through Hugging Face Inference Providers. Create a Modal secret named `huggingface-secret` with an `HF_TOKEN` value that can read both the adapter repository and its base model. The adapter's `adapter_config.json` must name a Qwen2.5-VL base model (`qwen2_5_vl`); Modal loads that base model and attaches `adapter_model.safetensors`. A text-only Qwen2 checkpoint cannot accept meme images. From the repository root, deploy it with:
