@@ -29,6 +29,8 @@ def health_check() -> dict[str, str]:
     }
 
 
-frontend_dist = Path(__file__).resolve().parents[3] / "frontend"
+frontend_dist = Path(__file__).resolve().parents[2] / "frontend"
+if not frontend_dist.is_dir():
+    frontend_dist = Path(__file__).resolve().parents[3] / "frontend"
 if frontend_dist.is_dir():
     app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
