@@ -1,103 +1,89 @@
-const HOME_SAMPLES = [
-  "/samples/sample-1.jpg",
-  "/samples/sample-2.jpg",
+const HOME_SAMPLES = ["/samples/sample-1.jpg", "/samples/sample-2.jpg"];
+
+const PROMPTS = [
+  {
+    text: "Leaving early, still late",
+    prompt:
+      "A hilarious Kampala traffic meme about leaving home two hours early, only to arrive at work when everyone is already asking where you have been",
+  },
+  {
+    text: "The boda shortcut becomes a tour",
+    prompt:
+      "A funny Ugandan boda meme about the rider confidently taking a shortcut that somehow turns into a full sightseeing tour around the neighbourhood",
+  },
+  {
+    text: "‘I’m almost there’ — still looking for shoes",
+    prompt:
+      "A playful Ugandan meme about telling your friends you are almost there when you are still at home looking for your shoes",
+  },
 ];
 
 export default function Home({ onNavigate, onPrompt }) {
-  const prompts = [
-    {
-      text: "You leave early for Kampala traffic… somehow you're still late",
-      prompt:
-        "A hilarious Kampala traffic meme about leaving home two hours early, only to arrive at work when everyone is already asking where you have been",
-    },
-    {
-      text: "The boda shortcut becomes a whole tour of the neighbourhood",
-      prompt:
-        "A funny Ugandan boda meme about the rider confidently taking a shortcut that somehow turns into a full sightseeing tour around the neighbourhood",
-    },
-    {
-      text: "“I'm almost there” but you're still at home looking for your shoes",
-      prompt:
-        "A playful Ugandan meme about telling your friends you are almost there when you are still at home looking for your shoes",
-    },
-  ];
-
   return (
-    <>
-      <div className="home-hero">
-        <div>
-          <h1>
-            Memes that understand{" "}
-            <span className="accent">Uganda</span>
-          </h1>
-          <p>
-            Describe a situation, get a meme that fits.
-          </p>
-
-          <div className="btn-row" style={{ marginTop: 0 }}>
-            <button className="btn btn-primary" onClick={() => onNavigate("generate")}>
-              Start generating →
-            </button>
-          </div>
+    <div className="home-page">
+      <section className="home-hero">
+        <div className="home-lockup">
+          <img src="/logo.webp" alt="" className="home-logo" />
+          <span className="eyebrow">Uganda AI Meme Studio</span>
         </div>
+        <h1>
+          Make a meme that <span className="accent">gets Uganda.</span>
+        </h1>
+        <p>Turn a photo and a familiar moment into a meme worth sharing.</p>
+        <button className="btn btn-primary" onClick={() => onNavigate("generate")}>
+          Create a meme <span aria-hidden="true">→</span>
+        </button>
+      </section>
 
-        <div className="home-prompts">
-          <div className="home-prompts-label">
-            Try a prompt
+      <section className="home-start" aria-labelledby="home-start-title">
+        <div className="home-section-heading">
+          <div>
+            <h2 id="home-start-title">Start with an idea</h2>
+            <p>Choose a prompt to get started, or write your own.</p>
           </div>
-
-          {prompts.map((item, index) => (
+          <button className="btn-quiet" onClick={() => onNavigate("generate")}>
+            Write my own →
+          </button>
+        </div>
+        <div className="home-prompts">
+          {PROMPTS.map((item) => (
             <button
-              key={index}
+              key={item.text}
               className="prompt-chip"
               onClick={() => onPrompt(item.prompt)}
             >
-              {item.text}
+              <span>{item.text}</span>
+              <span className="prompt-arrow" aria-hidden="true">→</span>
             </button>
           ))}
         </div>
-      </div>
+      </section>
 
-      <div className="home-below">
-        <div>
-          <div className="home-col-head">
-            <h2>Samples</h2>
+      <section className="home-bottom">
+        <div className="home-samples">
+          <div className="home-section-heading">
+            <div>
+              <h2>Made with the studio</h2>
+              <p>A few examples to set the mood.</p>
+            </div>
+            <button className="btn-quiet" onClick={() => onNavigate("samples")}>
+              Browse samples →
+            </button>
           </div>
           <div className="home-samples-grid">
             {HOME_SAMPLES.map((src, index) => (
-              <div
-                className="home-sample-card"
-                key={src}
-              >
-                <img
-                  src={src}
-                  alt={`Meme sample ${index + 1}`}
-                />
+              <div className="home-sample-card" key={src}>
+                <img src={src} alt={`Ugandan meme example ${index + 1}`} loading="lazy" />
               </div>
             ))}
           </div>
         </div>
-
-        <div>
-          <div className="home-col-head">
-            <h2>See what's possible</h2>
-          </div>
-
-          <div className="samples-teaser">
-            <p>
-              Explore more memes created by Uganda AI
-              Meme Studio.
-            </p>
-
-            <button
-              className="btn btn-samples"
-              onClick={() => onNavigate("samples")}
-            >
-              See more →
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
+        <button className="home-how-card" onClick={() => onNavigate("how")}>
+          <span className="eyebrow">Four simple steps</span>
+          <strong>Idea. Image. Caption. Your meme.</strong>
+          <span>See how it works <span aria-hidden="true">→</span></span>
+        </button>
+      </section>
+    </div>
   );
 }

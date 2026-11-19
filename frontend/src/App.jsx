@@ -368,7 +368,7 @@ export default function App() {
 
         <main className="main">
           {state.error && <div className="api-error" role="alert">{state.error}</div>}
-          <div className={`screen ${state.page === "generate" && state.step === 0 ? "narrow" : ""}`}>
+          <div className={`screen page-${state.page} ${state.page === "generate" && state.step === 0 ? "narrow" : ""}`}>
             {state.page === "home" && (
               <Home
                 onNavigate={showPage}
