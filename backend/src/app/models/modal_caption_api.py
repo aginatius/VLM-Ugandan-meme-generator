@@ -28,7 +28,7 @@ app = modal.App("ugmeme-caption-service")
     image=image,
     gpu="A10G",
     timeout=900,
-    secrets=[modal.Secret.from_name("huggingface-secret")],
+    secrets=[modal.Secret.from_name("huggingface-secret-2")],
 )
 class CaptionModel:
     @modal.enter()
@@ -39,7 +39,7 @@ class CaptionModel:
 
         token = os.environ.get("HF_TOKEN")
         if not token:
-            raise RuntimeError("The huggingface-secret Modal secret must contain HF_TOKEN.")
+            raise RuntimeError("The huggingface-secret-2 Modal secret must contain HF_TOKEN.")
 
         adapter_config = PeftConfig.from_pretrained(MODEL_ID, token=token)
         base_model_id = adapter_config.base_model_name_or_path
