@@ -28,6 +28,7 @@ app = modal.App("ugmeme-caption-service")
     image=image,
     gpu="A10G",
     timeout=900,
+    scaledown_window=300,
     secrets=[modal.Secret.from_name("huggingface-secret-2")],
 )
 class CaptionModel:

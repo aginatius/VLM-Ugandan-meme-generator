@@ -19,7 +19,7 @@ image = (
 app = App("ugmeme-vlm-backend", image=image)
 
 
-@app.cls(gpu="T4")
+@app.cls(gpu="T4", scaledown_window=300)
 class MemeModel:
     @enter()
     def load_model(self):

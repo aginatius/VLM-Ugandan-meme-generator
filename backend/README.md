@@ -43,7 +43,7 @@ On Vercel, set `VITE_API_BASE_URL=https://ugandan-meme-generator-api.onrender.co
 
 Images appear one at a time as each request completes. A failed candidate does not discard ready images; retry that candidate or continue with any ready image. Continuing stops the browser's remaining image requests. Generated images are decoded before display, and the backend rejects damaged or solid blank images with a retryable error.
 
-The Modal image model uses DPM-Solver++ with 20 sampling steps. Deploy changes to this sampler with `python -m modal deploy backend/src/app/models/modal_api.py`; Git pushes alone do not deploy Modal. GPU startup can still delay the first image after inactivity. Keeping containers warm reduces startup latency but adds idle GPU charges.
+The Modal image model uses DPM-Solver++ with 20 sampling steps. Both Modal model services keep containers warm for up to five minutes after a request to reduce repeat cold starts; this can add idle GPU charges. Deploy changes to the image model with `python -m modal deploy backend/src/app/models/modal_api.py`; Git pushes alone do not deploy Modal.
 
 Caption candidates use different creative directions and sampled decoding. The backend filters exact repeats and close wording, with at most two attempts per direction. It returns fewer candidates if the model cannot produce three distinct options, rather than padding with duplicates. Regeneration sends the current captions as exclusions. Deploy caption decoding changes with `python -m modal deploy backend/src/app/models/modal_caption_api.py`.
 
