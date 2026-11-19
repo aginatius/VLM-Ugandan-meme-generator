@@ -43,7 +43,44 @@ class MemeService:
             "Write a short spoken reaction from a different character, using a different joke and sentence structure.",
             "Write an ironic comparison between expectation and reality, with a new punchline and vocabulary.",
         )
+
+        batch_prompt = prompt.replace(
+            "Return only the caption, with no labels, explanation, hashtags, or quotation marks.",
+            "Generate exactly three distinct caption options, one caption per line. "
+            "Keep each caption to 12 words or fewer and use no numbering, labels, explanation, hashtags, or quotation marks.",
+        )
+        batch_prompt += "\nUse these separate creative directions in order:\n"
+        batch_prompt += "\n".join(
+            f"{index + 1}. {direction}" for index, direction in enumerate(directions)
+        )
+        if avoid:
+            batch_prompt += (
+                "\nPreviously used captions (reference only): "
+                + json.dumps(avoid, ensure_ascii=False)
+                + "\nDo not repeat or paraphrase these captions. Use different jokes, subject angles, openings, and punchlines."
+            )
+
+        batch_response = await self.client.generate_caption(
+            image, content_type, batch_prompt, model_name
+        )
+        for raw_caption in self._split_caption_candidates(batch_response):
+            caption = self._candidate_text(raw_caption, language)
+            if not caption or any(
+                self._similar_caption(caption, previous) for previous in avoid
+            ):
+                continue
+            captions.append(CaptionCandidate(
+                caption=caption, language=language, score=max(60, 94 - len(captions) * 7)
+            ))
+            avoid.append(caption)
+            if len(captions) == len(directions):
+                break
+
+        # Preserve the previous quality guard: fill missing distinct captions
+        # with the direction-specific retries if the model ignores the batch format.
         for direction in directions:
+            if len(captions) == len(directions):
+                break
             for attempt in range(2):
                 variation_prompt = f"{prompt}\nCreative direction: {direction}"
                 if avoid:
@@ -73,6 +110,23 @@ class MemeService:
             image_url=self._data_url(image, content_type),
             captions=captions,
         )
+
+    @staticmethod
+    def _split_caption_candidates(response: str) -> list[str]:
+        response = re.sub(r"```(?:\w+)?|```", "", response).strip()
+        candidates = []
+        for line in response.splitlines():
+            line = re.sub(
+                r"^\s*(?:(?:caption|option)\s*)?\d+\s*[.):\-]\s*|^\s*[-*•]\s*",
+                "",
+                line,
+                flags=re.IGNORECASE,
+            )
+            line = line.strip().strip('"\'“”‘’')
+            if not line or re.match(r"^(here are|captions?:)\b", line, re.IGNORECASE):
+                continue
+            candidates.append(line)
+        return candidates
 
     @staticmethod
     def _candidate_text(caption: str, language: str) -> str:
